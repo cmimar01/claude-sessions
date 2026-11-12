@@ -196,6 +196,36 @@ function setArchived(id, archived) {
   saveStore();
 }
 
+function promptText({ display, pastedContents = {} }) {
+  return display.replace(/\[Pasted text #(\d+)[^\]]*\]/g, (placeholder, pasteId) => {
+    const paste = pastedContents[pasteId];
+    return paste?.type === 'text' ? paste.content : placeholder;
+  });
+}
+
+function parseHistoryLine(line) {
+  try {
+    return [JSON.parse(line)];
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) throw error;
+    console.warn('Unlesbare Zeile in history.jsonl übersprungen');
+    return [];
+  }
+}
+
+async function promptHistory(id) {
+  const { claudeSessionId } = findSession(id);
+  const historyPath = path.join(os.homedir(), '.claude', 'history.jsonl');
+  if (!fs.existsSync(historyPath)) return [];
+  const lines = (await fs.promises.readFile(historyPath, 'utf8')).split('\n');
+  return lines
+    .filter((line) => line.includes(claudeSessionId))
+    .flatMap(parseHistoryLine)
+    .filter((entry) => entry.sessionId === claudeSessionId)
+    .map(promptText)
+    .reverse();
+}
+
 function resumeCommand(session) {
   const separator = process.platform === 'win32' ? ';' : ' &&';
   return `cd "${session.cwd}"${separator} claude --resume ${session.claudeSessionId}`;
@@ -274,6 +304,7 @@ ipcMain.on('context-menu', (_e, id) => showContextMenu(id));
 ipcMain.on('attach', (_e, id, cols, rows) => attach(id, cols, rows));
 ipcMain.on('mark-waiting', (_e, id) => setBusy(id, false));
 ipcMain.on('write', (_e, id, data) => ptys.get(id)?.write(data));
+ipcMain.handle('prompt-history', (_e, id) => promptHistory(id));
 ipcMain.on('write-clipboard', (_e, text) => clipboard.writeText(text));
 ipcMain.on('open-external', (_e, url) => {
   const isWebUrl = URL.canParse(url) && ['http:', 'https:'].includes(new URL(url).protocol);

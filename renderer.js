@@ -92,21 +92,57 @@ function createTerminal(id) {
   );
   term.attachCustomKeyEventHandler((e) => {
     const isPaste = e.ctrlKey && !e.shiftKey && !e.altKey && e.key === 'v';
-    if (!isPaste) return true;
+    const historyStep = { ArrowUp: 1, ArrowDown: -1 }[e.key];
+    const isHistoryRecall = e.altKey && !e.ctrlKey && !e.shiftKey && historyStep !== undefined;
+    if (!isPaste && !isHistoryRecall) return true;
     e.preventDefault();
-    if (e.type === 'keydown') paste(id, term);
+    if (e.type !== 'keydown') return false;
+    if (isPaste) paste(id, term);
+    else queueRecall(id, historyStep);
     return false;
   });
   term.onData((data) => {
+    Object.assign(terminals.get(id), { history: null, historyIndex: -1 });
     const isInterruptKey = data === '\x1b' || data === '\x03';
     if (running.has(id) && isInterruptKey) window.api.markWaiting(id);
     if (running.has(id)) window.api.write(id, data);
     else if (data === '\r') start(id);
   });
   term.onResize(({ cols, rows }) => window.api.resize(id, cols, rows));
-  const entry = { term, fit, host };
+  const entry = { term, fit, host, history: null, historyIndex: -1, recall: Promise.resolve() };
   terminals.set(id, entry);
   return entry;
+}
+
+const pause = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+function queueRecall(id, step) {
+  const entry = terminals.get(id);
+  entry.recall = entry.recall.then(() => recallPrompt(id, step));
+}
+
+async function recallPrompt(id, step) {
+  const canRecall = running.has(id) && !busyIds.has(id);
+  if (!canRecall) return;
+  const entry = terminals.get(id);
+  entry.history ??= await window.api.promptHistory(id);
+  const index = Math.max(-1, Math.min(entry.historyIndex + step, entry.history.length - 1));
+  if (index === entry.historyIndex) return;
+  entry.historyIndex = index;
+  await replaceInput(id, entry.term, index === -1 ? '' : entry.history[index]);
+}
+
+const killLinePair = '\x0b\x15';
+const killLinePairsPerChunk = 5;
+const killChunks = 10;
+
+async function replaceInput(id, term, text) {
+  for (let chunk = 0; chunk < killChunks; chunk++) {
+    window.api.write(id, killLinePair.repeat(killLinePairsPerChunk));
+    await pause(15);
+  }
+  await pause(50);
+  if (text && term.modes.bracketedPasteMode) window.api.write(id, `\x1b[200~${text}\x1b[201~`);
 }
 
 function openLinkOnCtrlClick(event, url) {
