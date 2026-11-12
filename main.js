@@ -239,6 +239,11 @@ function createSession(fields) {
   return id;
 }
 
+function stop(id) {
+  kill(id);
+  send('pty-exit', id);
+}
+
 function restart(id) {
   kill(id);
   send('restart-requested', id);
@@ -266,6 +271,7 @@ function showContextMenu(id) {
     { label: 'Ordner öffnen', click: () => shell.openPath(session.cwd) },
     { type: 'separator' },
     { label: 'Neu starten', enabled: isActive, click: () => restart(id) },
+    { label: 'Session beenden', enabled: ptys.has(id), click: () => stop(id) },
     { label: 'Arbeitsverzeichnis ändern…', click: () => changeWorkingDirectory(session) },
     { label: 'Als neue Session forken', enabled: isActive, click: () => fork(session) },
     { type: 'separator' },
@@ -325,11 +331,12 @@ app.whenReady().then(async () => {
   win = new BrowserWindow({
     width: 1400,
     height: 900,
-    title: 'Claude Sessions',
+    title: `Claude Sessions ${app.getVersion()}`,
     backgroundColor: '#1e1e1e',
     autoHideMenuBar: true,
     webPreferences: { preload: path.join(__dirname, 'preload.js') },
   });
+  win.on('page-title-updated', (event) => event.preventDefault());
   win.loadFile('index.html');
 });
 
