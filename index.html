@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'" />
+    <title>Claude Sessions</title>
+    <link rel="stylesheet" href="node_modules/@xterm/xterm/css/xterm.css" />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <aside id="sidebar">
+      <label for="default-cwd">Standardpfad</label>
+      <div class="path-row">
+        <input id="default-cwd" />
+        <button id="pick-default" title="Ordner wählen">…</button>
+      </div>
+
+      <button id="new-session">Neue Session</button>
+      <form id="new-form" hidden>
+        <input id="new-name" placeholder="Name" required />
+        <div class="path-row">
+          <input id="new-cwd" required />
+          <button type="button" id="pick-new" title="Ordner wählen">…</button>
+        </div>
+        <div class="form-buttons">
+          <button type="submit">Starten</button>
+          <button type="button" id="cancel-new">Abbrechen</button>
+        </div>
+      </form>
+
+      <ul id="sessions"></ul>
+      <details id="archive">
+        <summary></summary>
+        <ul id="archived-sessions"></ul>
+      </details>
+    </aside>
+    <main id="terminals">
+      <p id="placeholder">Session links auswählen oder neu starten.</p>
+    </main>
+    <script src="node_modules/@xterm/xterm/lib/xterm.js"></script>
+    <script src="node_modules/@xterm/addon-fit/lib/addon-fit.js"></script>
+    <script src="renderer.js"></script>
+  </body>
+</html>

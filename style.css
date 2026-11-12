@@ -1,0 +1,125 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  height: 100vh;
+  display: flex;
+  font: 13px system-ui, sans-serif;
+  background: #1e1e1e;
+  color: #ddd;
+}
+
+#sidebar {
+  width: 260px;
+  flex-shrink: 0;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  background: #252526;
+  overflow-y: auto;
+}
+
+input,
+button {
+  font: inherit;
+  color: inherit;
+  background: #3c3c3c;
+  border: 1px solid #555;
+  border-radius: 3px;
+  padding: 4px 6px;
+}
+
+button {
+  cursor: pointer;
+}
+
+.path-row {
+  display: flex;
+  gap: 4px;
+}
+
+.path-row input {
+  flex: 1;
+  min-width: 0;
+}
+
+#new-form {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+#new-form[hidden] {
+  display: none;
+}
+
+.form-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+li {
+  padding: 6px 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+li:hover {
+  background: #2a2d2e;
+}
+
+li.selected {
+  background: #094771;
+}
+
+li.running::before {
+  content: "● ";
+  color: #4ec9b0;
+}
+
+li small {
+  display: block;
+  color: #888;
+}
+
+li input {
+  width: 100%;
+}
+
+#archive summary {
+  color: #888;
+  cursor: pointer;
+}
+
+#archived-sessions li {
+  color: #888;
+}
+
+#terminals {
+  flex: 1;
+  position: relative;
+  min-width: 0;
+}
+
+.terminal-host {
+  position: absolute;
+  inset: 0;
+  padding: 4px;
+}
+
+#placeholder {
+  padding: 20px;
+  color: #888;
+}
