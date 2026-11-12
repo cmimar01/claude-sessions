@@ -94,8 +94,26 @@ li small {
   color: #888;
 }
 
-li input {
-  width: 100%;
+li.editing {
+  white-space: normal;
+  text-overflow: clip;
+}
+
+li.editing .name {
+  outline: 1px solid #007acc;
+  background: #3c3c3c;
+  cursor: text;
+}
+
+#working h2 {
+  margin: 8px 0 4px;
+  font-size: 12px;
+  font-weight: normal;
+  color: #888;
+}
+
+#working li.running::before {
+  color: #dcdcaa;
 }
 
 #archive summary {

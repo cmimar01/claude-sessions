@@ -1,14 +1,23 @@
 const terminals = new Map();
 const running = new Set();
+let busyIds = new Set();
 let store;
 let selectedId = null;
 
 const $ = (id) => document.getElementById(id);
 
+const lastActivity = (session) => session.lastPromptAt ?? session.createdAt;
+
 function renderList() {
-  const active = store.sessions.filter((s) => !s.archived);
+  const active = store.sessions
+    .filter((s) => !s.archived)
+    .sort((a, b) => lastActivity(b).localeCompare(lastActivity(a)));
+  const working = active.filter((s) => busyIds.has(s.id));
   const archived = store.sessions.filter((s) => s.archived);
-  $('sessions').replaceChildren(...active.map(listItem));
+  $('sessions').replaceChildren(...active.filter((s) => !busyIds.has(s.id)).map(listItem));
+  $('working-sessions').replaceChildren(...working.map(listItem));
+  $('working').hidden = working.length === 0;
+  $('working-title').textContent = `Claude arbeitet (${working.length})`;
   $('archived-sessions').replaceChildren(...archived.map(listItem));
   $('archive').hidden = archived.length === 0;
   $('archive').querySelector('summary').textContent = `Archiv (${archived.length})`;
@@ -20,7 +29,10 @@ function listItem(session) {
   li.title = session.cwd;
   li.classList.toggle('selected', session.id === selectedId);
   li.classList.toggle('running', running.has(session.id));
-  li.append(session.name);
+  const name = document.createElement('span');
+  name.className = 'name';
+  name.textContent = session.name;
+  li.append(name);
   const cwd = document.createElement('small');
   cwd.textContent = session.cwd;
   li.append(cwd);
@@ -35,18 +47,21 @@ function listItem(session) {
 function startRename(id) {
   const li = document.querySelector(`li[data-id="${id}"]`);
   const session = store.sessions.find((s) => s.id === id);
-  const input = document.createElement('input');
-  input.value = session.name;
-  li.replaceChildren(input);
-  input.focus();
-  input.select();
-  input.addEventListener('click', (e) => e.stopPropagation());
-  input.addEventListener('keydown', (e) => {
-    const newName = input.value.trim();
-    if (e.key === 'Enter' && newName) window.api.rename(id, newName);
+  const name = li.querySelector('.name');
+  li.classList.add('editing');
+  name.contentEditable = 'plaintext-only';
+  name.focus();
+  getSelection().selectAllChildren(name);
+  name.addEventListener('click', (e) => e.stopPropagation());
+  name.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') renderList();
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    const newName = name.textContent.trim();
+    if (newName && newName !== session.name) window.api.rename(id, newName);
+    else renderList();
   });
-  input.addEventListener('blur', renderList);
+  name.addEventListener('blur', renderList);
 }
 
 function createTerminal(id) {
@@ -70,6 +85,8 @@ function createTerminal(id) {
     return false;
   });
   term.onData((data) => {
+    const isEscapeKey = data === '\x1b';
+    if (running.has(id) && isEscapeKey) window.api.markWaiting(id);
     if (running.has(id)) window.api.write(id, data);
     else if (data === '\r') start(id);
   });
@@ -140,6 +157,10 @@ window.api.onExit((id) => {
 });
 window.api.onListChanged(onStoreChanged);
 window.api.onRenameRequested(startRename);
+window.api.onBusyChanged((ids) => {
+  busyIds = new Set(ids);
+  renderList();
+});
 
 $('default-cwd').addEventListener('change', (e) => window.api.setDefaultCwd(e.target.value.trim()));
 $('pick-default').addEventListener('click', async () => {

@@ -9,10 +9,12 @@ contextBridge.exposeInMainWorld('api', {
   pickFolder: (startPath) => ipcRenderer.invoke('pick-folder', startPath),
   showContextMenu: (id) => ipcRenderer.send('context-menu', id),
   attach: (id, cols, rows) => ipcRenderer.send('attach', id, cols, rows),
+  markWaiting: (id) => ipcRenderer.send('mark-waiting', id),
   write: (id, data) => ipcRenderer.send('write', id, data),
   resize: (id, cols, rows) => ipcRenderer.send('resize', id, cols, rows),
   onData: (callback) => ipcRenderer.on('pty-data', (_e, id, data) => callback(id, data)),
   onExit: (callback) => ipcRenderer.on('pty-exit', (_e, id) => callback(id)),
+  onBusyChanged: (callback) => ipcRenderer.on('busy-changed', (_e, ids) => callback(ids)),
   onListChanged: (callback) => ipcRenderer.on('list-changed', (_e, store) => callback(store)),
   onRenameRequested: (callback) => ipcRenderer.on('rename-requested', (_e, id) => callback(id)),
 });

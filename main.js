@@ -3,6 +3,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
+const http = require('http');
 const pty = require('node-pty');
 
 app.setPath('userData', path.join(app.getPath('appData'), 'claude-sessions'));
@@ -11,13 +12,20 @@ const claudeProjectsDir = path.join(os.homedir(), '.claude', 'projects');
 const claudeExecutableName = process.platform === 'win32' ? 'claude.exe' : 'claude';
 const nativeInstallPath = path.join(os.homedir(), '.local', 'bin', claudeExecutableName);
 const claudeExecutable = fs.existsSync(nativeInstallPath) ? nativeInstallPath : claudeExecutableName;
+const curlExecutable =
+  process.platform === 'win32' ? path.join(process.env.SystemRoot, 'System32', 'curl.exe') : 'curl';
+const hookToken = crypto.randomUUID();
 const ptys = new Map();
+const busyIds = new Set();
+let hookUrlBase;
 let store;
 let win;
 
 function loadStore() {
   if (!fs.existsSync(storePath)) return { defaultCwd: os.homedir(), sessions: [] };
-  return JSON.parse(fs.readFileSync(storePath, 'utf8'));
+  const loaded = JSON.parse(fs.readFileSync(storePath, 'utf8'));
+  loaded.sessions.forEach((session) => (session.claudeSessionId ??= session.id));
+  return loaded;
 }
 
 function saveStore() {
@@ -46,10 +54,88 @@ function sessionEnv() {
   return env;
 }
 
+function hookSettings(entryId) {
+  const forwardToTool = {
+    type: 'command',
+    command: curlExecutable,
+    args: ['-s', '-H', 'Content-Type: application/json', '--data-binary', '@-', `${hookUrlBase}/${entryId}`],
+  };
+  const forward = (matcher) => [{ ...(matcher && { matcher }), hooks: [forwardToTool] }];
+  return JSON.stringify({
+    hooks: {
+      SessionStart: forward(),
+      UserPromptSubmit: forward(),
+      PostToolUse: forward(),
+      Stop: forward(),
+      Notification: forward('permission_prompt|elicitation_dialog'),
+    },
+  });
+}
+
 function claudeArgs(session) {
-  return transcriptExists(session.id)
-    ? ['--resume', session.id]
-    : ['--session-id', session.id, '-n', session.name];
+  const { claudeSessionId } = session;
+  const sessionArgs = transcriptExists(claudeSessionId)
+    ? ['--resume', claudeSessionId]
+    : ['--session-id', claudeSessionId, '-n', session.name];
+  return [...sessionArgs, '--settings', hookSettings(session.id)];
+}
+
+function setBusy(id, busy) {
+  if (busy === busyIds.has(id)) return;
+  if (busy) busyIds.add(id);
+  else busyIds.delete(id);
+  send('busy-changed', [...busyIds]);
+}
+
+function handleHookEvent(entryId, body) {
+  const session = findSession(entryId);
+  if (!session) return;
+  let event;
+  try {
+    event = JSON.parse(body);
+  } catch (error) {
+    if (!(error instanceof SyntaxError)) throw error;
+    console.warn(`Hook mit ungültigem JSON für Eintrag ${entryId} ignoriert`);
+    return;
+  }
+  switch (event.hook_event_name) {
+    case 'SessionStart':
+      setBusy(entryId, false);
+      if (!event.session_id || event.session_id === session.claudeSessionId) return;
+      session.claudeSessionId = event.session_id;
+      saveStore();
+      return;
+    case 'UserPromptSubmit':
+      session.lastPromptAt = new Date().toISOString();
+      saveStore();
+      setBusy(entryId, true);
+      return;
+    case 'PostToolUse':
+      setBusy(entryId, true);
+      return;
+    case 'Stop':
+    case 'Notification':
+      setBusy(entryId, false);
+      return;
+  }
+}
+
+function startHookServer() {
+  const prefix = `/${hookToken}/`;
+  const server = http.createServer((req, res) => {
+    let body = '';
+    req.on('data', (chunk) => (body += chunk));
+    req.on('end', () => {
+      res.end();
+      if (req.url.startsWith(prefix)) handleHookEvent(req.url.slice(prefix.length), body);
+    });
+  });
+  return new Promise((resolve) =>
+    server.listen(0, '127.0.0.1', () => {
+      hookUrlBase = `http://127.0.0.1:${server.address().port}/${hookToken}`;
+      resolve();
+    }),
+  );
 }
 
 function attach(id, cols, rows) {
@@ -70,6 +156,7 @@ function attach(id, cols, rows) {
   proc.onData((data) => send('pty-data', id, data));
   proc.onExit(() => {
     ptys.delete(id);
+    setBusy(id, false);
     send('pty-exit', id);
   });
   ptys.set(id, proc);
@@ -78,6 +165,7 @@ function attach(id, cols, rows) {
 function kill(id) {
   ptys.get(id)?.kill();
   ptys.delete(id);
+  setBusy(id, false);
 }
 
 async function confirmRemove(session) {
@@ -87,7 +175,7 @@ async function confirmRemove(session) {
     defaultId: 1,
     cancelId: 1,
     message: `Session "${session.name}" endgültig aus der Liste entfernen?`,
-    detail: `Das Claude-Transcript bleibt erhalten und ist über "claude --resume ${session.id}" erreichbar.`,
+    detail: `Das Claude-Transcript bleibt erhalten und ist über "claude --resume ${session.claudeSessionId}" erreichbar.`,
   });
   return response === 0;
 }
@@ -127,7 +215,8 @@ ipcMain.handle('set-default-cwd', (_e, cwd) => {
   saveStore();
 });
 ipcMain.handle('create', (_e, { name, cwd }) => {
-  const session = { id: crypto.randomUUID(), name, cwd, createdAt: new Date().toISOString(), archived: false };
+  const id = crypto.randomUUID();
+  const session = { id, claudeSessionId: id, name, cwd, createdAt: new Date().toISOString(), archived: false };
   store.sessions.push(session);
   saveStore();
   return session.id;
@@ -146,6 +235,7 @@ ipcMain.handle('pick-folder', async (_e, startPath) => {
 });
 ipcMain.on('context-menu', (_e, id) => showContextMenu(id));
 ipcMain.on('attach', (_e, id, cols, rows) => attach(id, cols, rows));
+ipcMain.on('mark-waiting', (_e, id) => setBusy(id, false));
 ipcMain.on('write', (_e, id, data) => ptys.get(id)?.write(data));
 ipcMain.on('resize', (_e, id, cols, rows) => ptys.get(id)?.resize(cols, rows));
 
@@ -156,8 +246,9 @@ app.on('second-instance', () => {
   win.focus();
 });
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
   store = loadStore();
+  await startHookServer();
   win = new BrowserWindow({
     width: 1400,
     height: 900,
