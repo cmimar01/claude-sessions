@@ -1,0 +1,37 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  create-release:
+    runs-on: ubuntu-latest
+    steps:
+      - run: gh release create "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY" --generate-notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+  build:
+    needs: create-release
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm run dist
+      - run: |
+          shopt -s nullglob
+          gh release upload "$GITHUB_REF_NAME" dist/*.exe dist/*.AppImage --repo "$GITHUB_REPOSITORY"
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}

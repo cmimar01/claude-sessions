@@ -7,6 +7,9 @@ const pty = require('node-pty');
 
 const storePath = path.join(app.getPath('userData'), 'sessions.json');
 const claudeProjectsDir = path.join(os.homedir(), '.claude', 'projects');
+const claudeExecutableName = process.platform === 'win32' ? 'claude.exe' : 'claude';
+const nativeInstallPath = path.join(os.homedir(), '.local', 'bin', claudeExecutableName);
+const claudeExecutable = fs.existsSync(nativeInstallPath) ? nativeInstallPath : claudeExecutableName;
 const ptys = new Map();
 let store;
 let win;
@@ -51,7 +54,7 @@ function attach(id, cols, rows) {
     send('pty-exit', id);
     return;
   }
-  const proc = pty.spawn('claude.exe', claudeArgs(session), {
+  const proc = pty.spawn(claudeExecutable, claudeArgs(session), {
     name: 'xterm-256color',
     cwd: session.cwd,
     cols,
