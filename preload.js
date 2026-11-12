@@ -16,5 +16,7 @@ contextBridge.exposeInMainWorld('api', {
   onExit: (callback) => ipcRenderer.on('pty-exit', (_e, id) => callback(id)),
   onBusyChanged: (callback) => ipcRenderer.on('busy-changed', (_e, ids) => callback(ids)),
   onListChanged: (callback) => ipcRenderer.on('list-changed', (_e, store) => callback(store)),
+  onRestartRequested: (callback) => ipcRenderer.on('restart-requested', (_e, id) => callback(id)),
+  onSelectRequested: (callback) => ipcRenderer.on('select-requested', (_e, id) => callback(id)),
   onRenameRequested: (callback) => ipcRenderer.on('rename-requested', (_e, id) => callback(id)),
 });

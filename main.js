@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu, clipboard } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, clipboard, shell } = require('electron');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -76,7 +76,9 @@ function claudeArgs(session) {
   const { claudeSessionId } = session;
   const sessionArgs = transcriptExists(claudeSessionId)
     ? ['--resume', claudeSessionId]
-    : ['--session-id', claudeSessionId, '-n', session.name];
+    : session.forkOf
+      ? ['--resume', session.forkOf, '--fork-session']
+      : ['--session-id', claudeSessionId, '-n', session.name];
   return [...sessionArgs, '--settings', hookSettings(session.id)];
 }
 
@@ -155,6 +157,8 @@ function attach(id, cols, rows) {
   });
   proc.onData((data) => send('pty-data', id, data));
   proc.onExit(() => {
+    const isCurrentProcess = ptys.get(id) === proc;
+    if (!isCurrentProcess) return;
     ptys.delete(id);
     setBusy(id, false);
     send('pty-exit', id);
@@ -192,10 +196,49 @@ function setArchived(id, archived) {
   saveStore();
 }
 
+function resumeCommand(session) {
+  const separator = process.platform === 'win32' ? ';' : ' &&';
+  return `cd "${session.cwd}"${separator} claude --resume ${session.claudeSessionId}`;
+}
+
+function createSession(fields) {
+  const id = crypto.randomUUID();
+  const session = { id, claudeSessionId: id, createdAt: new Date().toISOString(), archived: false, ...fields };
+  store.sessions.push(session);
+  saveStore();
+  return id;
+}
+
+function restart(id) {
+  kill(id);
+  send('restart-requested', id);
+}
+
+async function changeWorkingDirectory(session) {
+  const result = await dialog.showOpenDialog(win, { defaultPath: session.cwd, properties: ['openDirectory'] });
+  if (result.canceled) return;
+  session.cwd = result.filePaths[0];
+  saveStore();
+  if (ptys.has(session.id)) restart(session.id);
+}
+
+function fork(session) {
+  const forkId = createSession({ name: `${session.name} (Fork)`, cwd: session.cwd, forkOf: session.claudeSessionId });
+  send('select-requested', forkId);
+}
+
 function showContextMenu(id) {
   const session = findSession(id);
+  const isActive = !session.archived;
   Menu.buildFromTemplate([
     { label: 'Umbenennen', click: () => send('rename-requested', id) },
+    { label: 'Resume-Befehl kopieren', click: () => clipboard.writeText(resumeCommand(session)) },
+    { label: 'Ordner öffnen', click: () => shell.openPath(session.cwd) },
+    { type: 'separator' },
+    { label: 'Neu starten', enabled: isActive, click: () => restart(id) },
+    { label: 'Arbeitsverzeichnis ändern…', click: () => changeWorkingDirectory(session) },
+    { label: 'Als neue Session forken', enabled: isActive, click: () => fork(session) },
+    { type: 'separator' },
     session.archived
       ? { label: 'Wiederherstellen', click: () => setArchived(id, false) }
       : { label: 'Archivieren', click: () => setArchived(id, true) },
@@ -214,13 +257,7 @@ ipcMain.handle('set-default-cwd', (_e, cwd) => {
   store.defaultCwd = cwd;
   saveStore();
 });
-ipcMain.handle('create', (_e, { name, cwd }) => {
-  const id = crypto.randomUUID();
-  const session = { id, claudeSessionId: id, name, cwd, createdAt: new Date().toISOString(), archived: false };
-  store.sessions.push(session);
-  saveStore();
-  return session.id;
-});
+ipcMain.handle('create', (_e, { name, cwd }) => createSession({ name, cwd }));
 ipcMain.handle('rename', (_e, id, name) => {
   findSession(id).name = name;
   saveStore();

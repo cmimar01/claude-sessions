@@ -85,8 +85,8 @@ function createTerminal(id) {
     return false;
   });
   term.onData((data) => {
-    const isEscapeKey = data === '\x1b';
-    if (running.has(id) && isEscapeKey) window.api.markWaiting(id);
+    const isInterruptKey = data === '\x1b' || data === '\x03';
+    if (running.has(id) && isInterruptKey) window.api.markWaiting(id);
     if (running.has(id)) window.api.write(id, data);
     else if (data === '\r') start(id);
   });
@@ -157,6 +157,11 @@ window.api.onExit((id) => {
 });
 window.api.onListChanged(onStoreChanged);
 window.api.onRenameRequested(startRename);
+window.api.onSelectRequested(select);
+window.api.onRestartRequested((id) => {
+  running.delete(id);
+  select(id);
+});
 window.api.onBusyChanged((ids) => {
   busyIds = new Set(ids);
   renderList();
