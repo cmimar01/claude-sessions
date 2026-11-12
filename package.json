@@ -1,6 +1,6 @@
 {
   "name": "claude-sessions",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "description": "Claude-Code-Sessions verwalten",
   "main": "main.js",
@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@xterm/addon-fit": "^0.11.0",
+    "@xterm/addon-web-links": "^0.12.0",
     "@xterm/xterm": "^6.0.0",
     "node-pty": "^1.1.0"
   },
@@ -23,10 +24,21 @@
   "build": {
     "appId": "com.github.cmimar01.claude-sessions",
     "productName": "Claude Sessions",
-    "files": ["main.js", "preload.js", "index.html", "renderer.js", "style.css"],
+    "files": [
+      "main.js",
+      "preload.js",
+      "index.html",
+      "renderer.js",
+      "style.css"
+    ],
     "asar": false,
     "npmRebuild": false,
-    "win": { "target": "nsis" },
-    "linux": { "target": "AppImage", "category": "Development" }
+    "win": {
+      "target": "nsis"
+    },
+    "linux": {
+      "target": "AppImage",
+      "category": "Development"
+    }
   }
 }

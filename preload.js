@@ -6,6 +6,8 @@ contextBridge.exposeInMainWorld('api', {
   create: (session) => ipcRenderer.invoke('create', session),
   rename: (id, name) => ipcRenderer.invoke('rename', id, name),
   readClipboard: () => ipcRenderer.invoke('read-clipboard'),
+  writeClipboard: (text) => ipcRenderer.send('write-clipboard', text),
+  openExternal: (url) => ipcRenderer.send('open-external', url),
   pickFolder: (startPath) => ipcRenderer.invoke('pick-folder', startPath),
   showContextMenu: (id) => ipcRenderer.send('context-menu', id),
   attach: (id, cols, rows) => ipcRenderer.send('attach', id, cols, rows),

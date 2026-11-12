@@ -274,6 +274,11 @@ ipcMain.on('context-menu', (_e, id) => showContextMenu(id));
 ipcMain.on('attach', (_e, id, cols, rows) => attach(id, cols, rows));
 ipcMain.on('mark-waiting', (_e, id) => setBusy(id, false));
 ipcMain.on('write', (_e, id, data) => ptys.get(id)?.write(data));
+ipcMain.on('write-clipboard', (_e, text) => clipboard.writeText(text));
+ipcMain.on('open-external', (_e, url) => {
+  const isWebUrl = URL.canParse(url) && ['http:', 'https:'].includes(new URL(url).protocol);
+  if (isWebUrl) shell.openExternal(url);
+});
 ipcMain.on('resize', (_e, id, cols, rows) => ptys.get(id)?.resize(cols, rows));
 
 if (!app.requestSingleInstanceLock()) app.exit(0);

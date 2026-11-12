@@ -70,13 +70,26 @@ function createTerminal(id) {
     fontFamily: 'Cascadia Mono, Consolas, monospace',
     fontSize: 13,
     scrollback: 10000,
+    linkHandler: { activate: openLinkOnCtrlClick },
   });
   const fit = new FitAddon.FitAddon();
   term.loadAddon(fit);
+  term.loadAddon(new WebLinksAddon.WebLinksAddon(openLinkOnCtrlClick));
   const host = document.createElement('div');
   host.className = 'terminal-host';
   $('terminals').append(host);
   term.open(host);
+  host.addEventListener('contextmenu', (e) => e.preventDefault());
+  host.addEventListener(
+    'mousedown',
+    (e) => {
+      if (e.button !== 2) return;
+      e.preventDefault();
+      e.stopPropagation();
+      copyOrPaste(id, term);
+    },
+    { capture: true },
+  );
   term.attachCustomKeyEventHandler((e) => {
     const isPaste = e.ctrlKey && !e.shiftKey && !e.altKey && e.key === 'v';
     if (!isPaste) return true;
@@ -94,6 +107,16 @@ function createTerminal(id) {
   const entry = { term, fit, host };
   terminals.set(id, entry);
   return entry;
+}
+
+function openLinkOnCtrlClick(event, url) {
+  if (event.ctrlKey) window.api.openExternal(url);
+}
+
+function copyOrPaste(id, term) {
+  if (!term.hasSelection()) return paste(id, term);
+  window.api.writeClipboard(term.getSelection());
+  term.clearSelection();
 }
 
 async function paste(id, term) {
