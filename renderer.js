@@ -62,7 +62,13 @@ function createTerminal(id) {
   host.className = 'terminal-host';
   $('terminals').append(host);
   term.open(host);
-  term.attachCustomKeyEventHandler((e) => !(e.ctrlKey && !e.shiftKey && !e.altKey && e.key === 'v'));
+  term.attachCustomKeyEventHandler((e) => {
+    const isPaste = e.ctrlKey && !e.shiftKey && !e.altKey && e.key === 'v';
+    if (!isPaste) return true;
+    e.preventDefault();
+    if (e.type === 'keydown') paste(id, term);
+    return false;
+  });
   term.onData((data) => {
     if (running.has(id)) window.api.write(id, data);
     else if (data === '\r') start(id);
@@ -71,6 +77,12 @@ function createTerminal(id) {
   const entry = { term, fit, host };
   terminals.set(id, entry);
   return entry;
+}
+
+async function paste(id, term) {
+  const { text, hasImage } = await window.api.readClipboard();
+  if (text) term.paste(text);
+  else if (hasImage) window.api.write(id, '\x1bv');
 }
 
 function start(id) {

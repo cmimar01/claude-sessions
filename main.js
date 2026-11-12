@@ -1,10 +1,11 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, clipboard } = require('electron');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const crypto = require('crypto');
 const pty = require('node-pty');
 
+app.setPath('userData', path.join(app.getPath('appData'), 'claude-sessions'));
 const storePath = path.join(app.getPath('userData'), 'sessions.json');
 const claudeProjectsDir = path.join(os.homedir(), '.claude', 'projects');
 const claudeExecutableName = process.platform === 'win32' ? 'claude.exe' : 'claude';
@@ -40,6 +41,11 @@ function transcriptExists(id) {
     .some((dir) => fs.existsSync(path.join(claudeProjectsDir, dir, `${id}.jsonl`)));
 }
 
+function sessionEnv() {
+  const { CLAUDE_CODE_CHILD_SESSION, ...env } = process.env;
+  return env;
+}
+
 function claudeArgs(session) {
   return transcriptExists(session.id)
     ? ['--resume', session.id]
@@ -59,7 +65,7 @@ function attach(id, cols, rows) {
     cwd: session.cwd,
     cols,
     rows,
-    env: process.env,
+    env: sessionEnv(),
   });
   proc.onData((data) => send('pty-data', id, data));
   proc.onExit(() => {
@@ -130,6 +136,10 @@ ipcMain.handle('rename', (_e, id, name) => {
   findSession(id).name = name;
   saveStore();
 });
+ipcMain.handle('read-clipboard', async () => ({
+  text: await clipboard.readText(),
+  hasImage: await clipboard.has('image/png'),
+}));
 ipcMain.handle('pick-folder', async (_e, startPath) => {
   const result = await dialog.showOpenDialog(win, { defaultPath: startPath, properties: ['openDirectory'] });
   return result.canceled ? null : result.filePaths[0];
@@ -138,6 +148,13 @@ ipcMain.on('context-menu', (_e, id) => showContextMenu(id));
 ipcMain.on('attach', (_e, id, cols, rows) => attach(id, cols, rows));
 ipcMain.on('write', (_e, id, data) => ptys.get(id)?.write(data));
 ipcMain.on('resize', (_e, id, cols, rows) => ptys.get(id)?.resize(cols, rows));
+
+if (!app.requestSingleInstanceLock()) app.exit(0);
+
+app.on('second-instance', () => {
+  if (win.isMinimized()) win.restore();
+  win.focus();
+});
 
 app.whenReady().then(() => {
   store = loadStore();

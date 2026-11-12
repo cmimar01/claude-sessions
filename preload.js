@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('api', {
   setDefaultCwd: (cwd) => ipcRenderer.invoke('set-default-cwd', cwd),
   create: (session) => ipcRenderer.invoke('create', session),
   rename: (id, name) => ipcRenderer.invoke('rename', id, name),
+  readClipboard: () => ipcRenderer.invoke('read-clipboard'),
   pickFolder: (startPath) => ipcRenderer.invoke('pick-folder', startPath),
   showContextMenu: (id) => ipcRenderer.send('context-menu', id),
   attach: (id, cols, rows) => ipcRenderer.send('attach', id, cols, rows),
