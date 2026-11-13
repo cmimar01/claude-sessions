@@ -5,6 +5,7 @@ const path = require('path');
 const crypto = require('crypto');
 const http = require('http');
 const pty = require('node-pty');
+const { autoUpdater } = require('electron-updater');
 
 app.setPath('userData', path.join(app.getPath('appData'), 'claude-sessions'));
 const storePath = path.join(app.getPath('userData'), 'sessions.json');
@@ -338,6 +339,12 @@ ipcMain.on('open-external', (_e, url) => {
 });
 ipcMain.on('resize', (_e, id, cols, rows) => ptys.get(id)?.resize(cols, rows));
 
+const UPDATE_INTERVAL_MS = 4 * 60 * 60 * 1000;
+
+function checkForUpdates() {
+  autoUpdater.checkForUpdatesAndNotify().catch((err) => console.error('Update-Prüfung fehlgeschlagen:', err.message));
+}
+
 if (!app.requestSingleInstanceLock()) app.exit(0);
 
 app.on('second-instance', () => {
@@ -358,6 +365,8 @@ app.whenReady().then(async () => {
   });
   win.on('page-title-updated', (event) => event.preventDefault());
   win.loadFile('index.html');
+  checkForUpdates();
+  setInterval(checkForUpdates, UPDATE_INTERVAL_MS);
 });
 
 app.on('before-quit', () => ptys.forEach((proc) => proc.kill()));
