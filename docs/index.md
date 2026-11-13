@@ -30,7 +30,7 @@ Node.js-Version laut `.nvmrc`: 22.
 
 | Aktion | So geht's |
 |---|---|
-| Neue Session | «Neue Session», Arbeitsverzeichnis wählen, «Starten». Ohne Namen heisst die Session zuerst wie ihr Ordner und danach wie die ersten 40 Zeichen des ersten Prompts |
+| Neue Session | «Neue Session», Arbeitsverzeichnis wählen, «Starten». Existiert der Ordner nicht, bleibt das Formular offen und es entsteht keine Session. Ohne Namen heisst die Session zuerst wie ihr Ordner und danach wie die ersten 40 Zeichen des ersten Prompts |
 | Standardpfad | Feld oben in der Seitenleiste; gilt als Vorgabe für neue Sessions |
 | Session öffnen | Eintrag links anklicken; ein beendeter Prozess startet automatisch neu (`--resume`) |
 | Beendete Session neu starten | Im Terminal Enter drücken |
