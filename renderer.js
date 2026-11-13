@@ -46,7 +46,26 @@ function onBusyChanged(ids) {
   finished.forEach((id) => attentionIds.add(id));
   nowBusy.forEach((id) => attentionIds.delete(id));
   busyIds = nowBusy;
+  window.api.setBusyBadge(nowBusy.size, nowBusy.size ? badgeImage(nowBusy.size) : null);
   renderList();
+}
+
+function badgeImage(count) {
+  const size = 32;
+  const canvas = document.createElement('canvas');
+  canvas.width = canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#c4314b';
+  ctx.beginPath();
+  ctx.arc(size / 2, size / 2, size / 2, 0, 2 * Math.PI);
+  ctx.fill();
+  const label = count > 9 ? '9+' : String(count);
+  ctx.fillStyle = '#fff';
+  ctx.font = `bold ${label.length > 1 ? 17 : 22}px "Segoe UI", system-ui, sans-serif`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(label, size / 2, size / 2 + 1);
+  return canvas.toDataURL();
 }
 
 function clearAttention(id) {
