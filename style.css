@@ -84,9 +84,42 @@ li.selected {
   background: #094771;
 }
 
-li.running::before {
-  content: "● ";
+#sessions li::before {
+  content: "";
+  display: inline-block;
+  width: 1.2em;
+}
+
+#sessions li.running::before {
+  content: "●";
   color: #4ec9b0;
+  opacity: 0.6;
+}
+
+#sessions li.busy::before {
+  content: "●";
+  color: #dcdcaa;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+#sessions li.attention::before {
+  content: "◆";
+  color: #ce9178;
+}
+
+#sessions li.attention .name {
+  font-weight: bold;
+  color: #fff;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+#sessions li small {
+  padding-left: 1.2em;
 }
 
 li small {
@@ -103,17 +136,6 @@ li.editing .name {
   outline: 1px solid #007acc;
   background: #3c3c3c;
   cursor: text;
-}
-
-#working h2 {
-  margin: 8px 0 4px;
-  font-size: 12px;
-  font-weight: normal;
-  color: #888;
-}
-
-#working li.running::before {
-  color: #dcdcaa;
 }
 
 #archive summary {
