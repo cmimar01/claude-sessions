@@ -13,6 +13,7 @@ contextBridge.exposeInMainWorld('api', {
   showContextMenu: (id) => ipcRenderer.send('context-menu', id),
   attach: (id, cols, rows) => ipcRenderer.send('attach', id, cols, rows),
   markWaiting: (id) => ipcRenderer.send('mark-waiting', id),
+  setAttentionCount: (count) => ipcRenderer.send('attention-count', count),
   write: (id, data) => ipcRenderer.send('write', id, data),
   resize: (id, cols, rows) => ipcRenderer.send('resize', id, cols, rows),
   onData: (callback) => ipcRenderer.on('pty-data', (_e, id, data) => callback(id, data)),

@@ -21,6 +21,7 @@ function renderList() {
   $('archived-sessions').replaceChildren(...archived.map(listItem));
   $('archive').hidden = archived.length === 0;
   $('archive').querySelector('summary').textContent = `Archiv (${archived.length})`;
+  window.api.setAttentionCount(attentionIds.size);
 }
 
 const STATE_LABELS = {
