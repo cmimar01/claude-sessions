@@ -125,7 +125,8 @@ function createTerminal(id) {
     fontFamily: 'Cascadia Mono, Consolas, monospace',
     fontSize: 13,
     scrollback: 10000,
-    linkHandler: { activate: openLinkOnCtrlClick },
+    // With mouse tracking on, xterm also forwards the click and Claude Code opens its own OSC 8 links, so opening here too gives a second tab.
+    linkHandler: { activate: (event, url) => term.modes.mouseTrackingMode === 'none' && openLinkOnCtrlClick(event, url) },
     allowProposedApi: true,
   });
   // Claude Code lays out emoji such as ⏳ as two columns; xterm's default Unicode 6 table counts one, which shifts and overdraws its redraws.
