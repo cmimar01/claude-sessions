@@ -1,6 +1,7 @@
 const terminals = new Map();
 const running = new Set();
 let busyIds = new Set();
+const attentionIds = new Set();
 let store;
 let selectedId = null;
 let renamingId = null;
@@ -15,23 +16,50 @@ function renderList() {
   const active = store.sessions
     .filter((s) => !s.archived)
     .sort((a, b) => lastActivity(b).localeCompare(lastActivity(a)));
-  const working = active.filter((s) => busyIds.has(s.id));
   const archived = store.sessions.filter((s) => s.archived);
-  $('sessions').replaceChildren(...active.filter((s) => !busyIds.has(s.id)).map(listItem));
-  $('working-sessions').replaceChildren(...working.map(listItem));
-  $('working').hidden = working.length === 0;
-  $('working-title').textContent = `Claude arbeitet (${working.length})`;
+  $('sessions').replaceChildren(...active.map(listItem));
   $('archived-sessions').replaceChildren(...archived.map(listItem));
   $('archive').hidden = archived.length === 0;
   $('archive').querySelector('summary').textContent = `Archiv (${archived.length})`;
+  window.api.setAttentionCount(attentionIds.size);
+}
+
+const STATE_LABELS = {
+  busy: 'Claude arbeitet',
+  attention: 'Wartet auf dich',
+  running: 'Läuft',
+  stopped: 'Nicht gestartet',
+};
+
+function sessionState(id) {
+  if (!running.has(id)) return null;
+  if (busyIds.has(id)) return 'busy';
+  if (attentionIds.has(id)) return 'attention';
+  return 'running';
+}
+
+const isInView = (id) => id === selectedId && document.hasFocus();
+
+function onBusyChanged(ids) {
+  const nowBusy = new Set(ids);
+  const finished = [...busyIds].filter((id) => !nowBusy.has(id) && running.has(id) && !isInView(id));
+  finished.forEach((id) => attentionIds.add(id));
+  nowBusy.forEach((id) => attentionIds.delete(id));
+  busyIds = nowBusy;
+  renderList();
+}
+
+function clearAttention(id) {
+  if (attentionIds.delete(id)) renderList();
 }
 
 function listItem(session) {
   const li = document.createElement('li');
   li.dataset.id = session.id;
-  li.title = session.cwd;
   li.classList.toggle('selected', session.id === selectedId);
-  li.classList.toggle('running', running.has(session.id));
+  const state = sessionState(session.id);
+  if (state) li.classList.add(state);
+  li.title = session.archived ? session.cwd : `${STATE_LABELS[state ?? 'stopped']}\n${session.cwd}`;
   const name = document.createElement('span');
   name.className = 'name';
   name.textContent = session.name;
@@ -190,6 +218,7 @@ function disposeTerminal(id) {
   entry.host.remove();
   terminals.delete(id);
   running.delete(id);
+  attentionIds.delete(id);
 }
 
 function select(id) {
@@ -199,6 +228,7 @@ function select(id) {
   terminals.forEach((other) => (other.host.hidden = other !== entry));
   entry.fit.fit();
   entry.term.focus();
+  attentionIds.delete(id);
   if (!running.has(id)) start(id);
   renderList();
 }
@@ -226,6 +256,7 @@ async function pickInto(input) {
 window.api.onData((id, data) => terminals.get(id)?.term.write(data));
 window.api.onExit((id) => {
   running.delete(id);
+  attentionIds.delete(id);
   terminals.get(id)?.term.write('\r\n\x1b[33m[Session beendet, Enter startet neu]\x1b[0m\r\n');
   renderList();
 });
@@ -236,9 +267,9 @@ window.api.onRestartRequested((id) => {
   running.delete(id);
   select(id);
 });
-window.api.onBusyChanged((ids) => {
-  busyIds = new Set(ids);
-  renderList();
+window.api.onBusyChanged(onBusyChanged);
+window.addEventListener('focus', () => {
+  if (selectedId) clearAttention(selectedId);
 });
 
 $('default-cwd').addEventListener('change', (e) => window.api.setDefaultCwd(e.target.value.trim()));

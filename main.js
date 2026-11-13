@@ -331,6 +331,7 @@ ipcMain.handle('pick-folder', async (_e, startPath) => {
 ipcMain.on('context-menu', (_e, id) => showContextMenu(id));
 ipcMain.on('attach', (_e, id, cols, rows) => attach(id, cols, rows));
 ipcMain.on('mark-waiting', (_e, id) => setBusy(id, false));
+ipcMain.on('attention-count', (_e, count) => showAttentionCount(count));
 ipcMain.on('write', (_e, id, data) => ptys.get(id)?.write(data));
 ipcMain.on('paste-image', (_e, id) => ptys.get(id)?.write(imagePasteKey));
 ipcMain.handle('prompt-history', (_e, id) => promptHistory(id));
@@ -340,6 +341,15 @@ ipcMain.on('open-external', (_e, url) => {
   if (isWebUrl) shell.openExternal(url);
 });
 ipcMain.on('resize', (_e, id, cols, rows) => ptys.get(id)?.resize(cols, rows));
+
+const baseTitle = () => `Claude Sessions ${app.getVersion()}`;
+let attentionCount = 0;
+
+function showAttentionCount(count) {
+  if (count > attentionCount && !win.isFocused()) win.flashFrame(true);
+  attentionCount = count;
+  win.setTitle(count ? `(${count}) ${baseTitle()}` : baseTitle());
+}
 
 const UPDATE_INTERVAL_MS = 4 * 60 * 60 * 1000;
 
@@ -360,12 +370,13 @@ app.whenReady().then(async () => {
   win = new BrowserWindow({
     width: 1400,
     height: 900,
-    title: `Claude Sessions ${app.getVersion()}`,
+    title: baseTitle(),
     backgroundColor: '#1e1e1e',
     autoHideMenuBar: true,
     webPreferences: { preload: path.join(__dirname, 'preload.js') },
   });
   win.on('page-title-updated', (event) => event.preventDefault());
+  win.on('focus', () => win.flashFrame(false));
   win.loadFile('index.html');
   checkForUpdates();
   setInterval(checkForUpdates, UPDATE_INTERVAL_MS);
