@@ -107,7 +107,11 @@ function createTerminal(id) {
     fontSize: 13,
     scrollback: 10000,
     linkHandler: { activate: openLinkOnCtrlClick },
+    allowProposedApi: true,
   });
+  // Claude Code lays out emoji such as ⏳ as two columns; xterm's default Unicode 6 table counts one, which shifts and overdraws its redraws.
+  term.loadAddon(new Unicode11Addon.Unicode11Addon());
+  term.unicode.activeVersion = '11';
   const fit = new FitAddon.FitAddon();
   term.loadAddon(fit);
   term.loadAddon(new WebLinksAddon.WebLinksAddon(openLinkOnCtrlClick));
