@@ -134,10 +134,15 @@ li.editing .name {
 .terminal-host {
   position: absolute;
   inset: 0;
+  box-sizing: content-box;
   padding: 4px;
 }
 
 #placeholder {
   padding: 20px;
   color: #888;
+}
+
+.xterm .xterm-scrollable-element > .scrollbar {
+  display: none;
 }
