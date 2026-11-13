@@ -31,7 +31,7 @@ jobs:
       - run: npm run dist
       - run: |
           shopt -s nullglob
-          gh release upload "$GITHUB_REF_NAME" dist/*.exe dist/*.AppImage --repo "$GITHUB_REPOSITORY"
+          gh release upload "$GITHUB_REF_NAME" dist/*.exe dist/*.AppImage dist/*.blockmap dist/latest*.yml --repo "$GITHUB_REPOSITORY"
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
