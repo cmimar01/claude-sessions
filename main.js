@@ -15,6 +15,7 @@ const nativeInstallPath = path.join(os.homedir(), '.local', 'bin', claudeExecuta
 const claudeExecutable = fs.existsSync(nativeInstallPath) ? nativeInstallPath : claudeExecutableName;
 const curlExecutable =
   process.platform === 'win32' ? path.join(process.env.SystemRoot, 'System32', 'curl.exe') : 'curl';
+const imagePasteKey = process.platform === 'win32' ? '\x1bv' : '\x16';
 const hookToken = crypto.randomUUID();
 const autoNameLength = 40;
 const ptys = new Map();
@@ -331,6 +332,7 @@ ipcMain.on('context-menu', (_e, id) => showContextMenu(id));
 ipcMain.on('attach', (_e, id, cols, rows) => attach(id, cols, rows));
 ipcMain.on('mark-waiting', (_e, id) => setBusy(id, false));
 ipcMain.on('write', (_e, id, data) => ptys.get(id)?.write(data));
+ipcMain.on('paste-image', (_e, id) => ptys.get(id)?.write(imagePasteKey));
 ipcMain.handle('prompt-history', (_e, id) => promptHistory(id));
 ipcMain.on('write-clipboard', (_e, text) => clipboard.writeText(text));
 ipcMain.on('open-external', (_e, url) => {
