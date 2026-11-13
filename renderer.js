@@ -102,10 +102,12 @@ function createTerminal(id) {
     const isPaste = e.ctrlKey && !e.shiftKey && !e.altKey && e.key === 'v';
     const historyStep = { ArrowUp: 1, ArrowDown: -1 }[e.key];
     const isHistoryRecall = e.altKey && !e.ctrlKey && !e.shiftKey && historyStep !== undefined;
-    if (!isPaste && !isHistoryRecall) return true;
+    const isNewline = e.ctrlKey && !e.shiftKey && !e.altKey && e.key === 'Enter';
+    if (!isPaste && !isHistoryRecall && !isNewline) return true;
     e.preventDefault();
     if (e.type !== 'keydown') return false;
     if (isPaste) paste(id, term);
+    else if (isNewline) insertNewline(id);
     else queueRecall(id, historyStep);
     return false;
   });
@@ -151,6 +153,11 @@ async function replaceInput(id, term, text) {
   }
   await pause(50);
   if (text && term.modes.bracketedPasteMode) window.api.write(id, `\x1b[200~${text}\x1b[201~`);
+}
+
+// xterm.js sends a plain CR for Ctrl+Enter, which Claude Code treats as submit; LF (Ctrl+J) inserts a line break.
+function insertNewline(id) {
+  if (running.has(id)) window.api.write(id, '\n');
 }
 
 function openLinkOnCtrlClick(event, url) {
