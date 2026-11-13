@@ -38,6 +38,7 @@ Node.js-Version laut `.nvmrc`: 22.
 | Bild einfügen | Strg+V mit Bild in der Zwischenablage |
 | Kopieren | Text markieren, Rechtsklick |
 | Link öffnen | Strg+Klick (nur `http`/`https`) |
+| Neue Zeile im Prompt | Strg+Enter |
 | Frühere Prompts der Session | Alt+Pfeil hoch / Alt+Pfeil runter |
 | Status «arbeitet» zurücksetzen | Esc oder Strg+C |
 
