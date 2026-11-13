@@ -3,12 +3,15 @@ const running = new Set();
 let busyIds = new Set();
 let store;
 let selectedId = null;
+let renamingId = null;
 
 const $ = (id) => document.getElementById(id);
 
 const lastActivity = (session) => session.lastPromptAt ?? session.createdAt;
 
 function renderList() {
+  // Rebuilding the list during a rename would destroy the edited element and discard the input.
+  if (renamingId) return;
   const active = store.sessions
     .filter((s) => !s.archived)
     .sort((a, b) => lastActivity(b).localeCompare(lastActivity(a)));
@@ -46,22 +49,27 @@ function listItem(session) {
 
 function startRename(id) {
   const li = document.querySelector(`li[data-id="${id}"]`);
-  const session = store.sessions.find((s) => s.id === id);
   const name = li.querySelector('.name');
+  renamingId = id;
   li.classList.add('editing');
   name.contentEditable = 'plaintext-only';
   name.focus();
   getSelection().selectAllChildren(name);
+  const finish = (newName) => {
+    if (renamingId !== id) return;
+    renamingId = null;
+    const session = store.sessions.find((s) => s.id === id);
+    if (newName && session && newName !== session.name) window.api.rename(id, newName);
+    renderList();
+  };
   name.addEventListener('click', (e) => e.stopPropagation());
   name.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') renderList();
+    if (e.key === 'Escape') finish(null);
     if (e.key !== 'Enter') return;
     e.preventDefault();
-    const newName = name.textContent.trim();
-    if (newName && newName !== session.name) window.api.rename(id, newName);
-    else renderList();
+    finish(name.textContent.trim());
   });
-  name.addEventListener('blur', renderList);
+  name.addEventListener('blur', () => finish(null));
 }
 
 function createTerminal(id) {
