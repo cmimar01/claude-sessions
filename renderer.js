@@ -201,7 +201,7 @@ function copyOrPaste(id, term) {
 async function paste(id, term) {
   const { text, hasImage } = await window.api.readClipboard();
   if (text) term.paste(text);
-  else if (hasImage) window.api.write(id, '\x1bv');
+  else if (hasImage) window.api.pasteImage(id);
 }
 
 function start(id) {
