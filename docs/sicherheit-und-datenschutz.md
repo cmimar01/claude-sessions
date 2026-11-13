@@ -38,12 +38,12 @@ Die App enthält keine Telemetrie, keinen Update-Check und lädt keine Skripte o
 
 **Firmenrichtlinien.** Ob nicht signierte Software aus einem privaten Konto auf Firmengeräten zulässig ist, entscheidet die interne IT, nicht diese Prüfung.
 
-**Lokale Klartextdateien.** `sessions.json` enthält Session-Namen und Pfade im Klartext. Wer Namen mit Kunden- oder Personenbezug vergibt, legt diese Information unverschlüsselt im Benutzerprofil ab, wie es Claude Code mit seinen Transcripts ohnehin tut.
+**Lokale Klartextdateien.** `sessions.json` enthält Session-Namen und Pfade im Klartext. Wer Namen mit Kunden- oder Personenbezug vergibt, legt diese Information unverschlüsselt im Benutzerprofil ab, wie es Claude Code mit seinen Transcripts ohnehin tut. Bleibt das Namensfeld leer, übernimmt die App die ersten 40 Zeichen des ersten Prompts als Namen; damit steht auch dieser Prompt-Anfang in `sessions.json`.
 
 **Entfernen heisst nicht Löschen.** «Endgültig entfernen» löscht nur den Listeneintrag. Transcript und Prompt-Verlauf in `~/.claude` bleiben bestehen und müssen bei Bedarf dort gelöscht werden.
 
 ## Empfehlungen für den Betrieb
 
 1. Beim ersten Einsatz aus dem Quellcode starten oder den Installer nur aus der Releases-Seite dieses Repositorys beziehen.
-2. Für Sessions mit vertraulichem Kontext neutrale Namen wählen.
+2. Für Sessions mit vertraulichem Kontext neutrale Namen wählen, statt das Feld leer zu lassen.
 3. Nach Abschluss eines Mandats Transcripts in `~/.claude/projects` gezielt löschen, nicht nur den Listeneintrag.
