@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld('api', {
   attach: (id, cols, rows) => ipcRenderer.send('attach', id, cols, rows),
   markWaiting: (id) => ipcRenderer.send('mark-waiting', id),
   write: (id, data) => ipcRenderer.send('write', id, data),
+  pasteImage: (id) => ipcRenderer.send('paste-image', id),
   resize: (id, cols, rows) => ipcRenderer.send('resize', id, cols, rows),
   onData: (callback) => ipcRenderer.on('pty-data', (_e, id, data) => callback(id, data)),
   onExit: (callback) => ipcRenderer.on('pty-exit', (_e, id) => callback(id)),
