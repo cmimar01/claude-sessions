@@ -244,14 +244,27 @@ $('new-session').addEventListener('click', () => {
   $('new-form').hidden = false;
   $('new-name').value = '';
   $('new-cwd').value = store.defaultCwd;
+  $('new-cwd').setCustomValidity('');
   $('new-name').focus();
 });
-$('pick-new').addEventListener('click', () => pickInto($('new-cwd')));
-$('cancel-new').addEventListener('click', () => ($('new-form').hidden = true));
+$('pick-new').addEventListener('click', async () => {
+  if (await pickInto($('new-cwd'))) $('new-cwd').setCustomValidity('');
+});
+$('new-cwd').addEventListener('input', () => $('new-cwd').setCustomValidity(''));
+$('cancel-new').addEventListener('click', () => {
+  $('new-cwd').setCustomValidity('');
+  $('new-form').hidden = true;
+});
 $('new-form').addEventListener('submit', async (e) => {
   e.preventDefault();
+  const cwd = $('new-cwd').value.trim();
+  const id = await window.api.create({ name: $('new-name').value.trim(), cwd });
+  if (!id) {
+    $('new-cwd').setCustomValidity(`Ordner nicht gefunden: ${cwd}`);
+    $('new-cwd').reportValidity();
+    return;
+  }
   $('new-form').hidden = true;
-  const id = await window.api.create({ name: $('new-name').value.trim(), cwd: $('new-cwd').value.trim() });
   select(id);
 });
 

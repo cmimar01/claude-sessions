@@ -151,10 +151,14 @@ function startHookServer() {
   );
 }
 
+function isDirectory(cwd) {
+  return path.isAbsolute(cwd) && Boolean(fs.statSync(cwd, { throwIfNoEntry: false })?.isDirectory());
+}
+
 function attach(id, cols, rows) {
   if (ptys.has(id)) return;
   const session = findSession(id);
-  if (!fs.existsSync(session.cwd)) {
+  if (!isDirectory(session.cwd)) {
     send('pty-data', id, `\x1b[31mPfad nicht gefunden: ${session.cwd}\x1b[0m\r\n`);
     send('pty-exit', id);
     return;
@@ -304,9 +308,10 @@ ipcMain.handle('set-default-cwd', (_e, cwd) => {
   store.defaultCwd = cwd;
   saveStore();
 });
-ipcMain.handle('create', (_e, { name, cwd }) =>
-  createSession(name ? { name, cwd } : { name: path.basename(cwd) || cwd, cwd, autoNamed: true }),
-);
+ipcMain.handle('create', (_e, { name, cwd }) => {
+  if (!isDirectory(cwd)) return null;
+  return createSession(name ? { name, cwd } : { name: path.basename(cwd) || cwd, cwd, autoNamed: true });
+});
 ipcMain.handle('rename', (_e, id, name) => {
   const session = findSession(id);
   session.name = name;
