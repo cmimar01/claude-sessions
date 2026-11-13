@@ -15,6 +15,7 @@ const claudeExecutable = fs.existsSync(nativeInstallPath) ? nativeInstallPath : 
 const curlExecutable =
   process.platform === 'win32' ? path.join(process.env.SystemRoot, 'System32', 'curl.exe') : 'curl';
 const hookToken = crypto.randomUUID();
+const autoNameLength = 40;
 const ptys = new Map();
 const busyIds = new Set();
 let hookUrlBase;
@@ -78,7 +79,7 @@ function claudeArgs(session) {
     ? ['--resume', claudeSessionId]
     : session.forkOf
       ? ['--resume', session.forkOf, '--fork-session']
-      : ['--session-id', claudeSessionId, '-n', session.name];
+      : ['--session-id', claudeSessionId, ...(session.autoNamed ? [] : ['-n', session.name])];
   return [...sessionArgs, '--settings', hookSettings(session.id)];
 }
 
@@ -87,6 +88,15 @@ function setBusy(id, busy) {
   if (busy) busyIds.add(id);
   else busyIds.delete(id);
   send('busy-changed', [...busyIds]);
+}
+
+function applyNameFromPrompt(session, prompt) {
+  if (!session.autoNamed) return;
+  const text = (prompt ?? '').replace(/\s+/g, ' ').trim();
+  // Slash commands like /clear or /model say nothing about the session's topic.
+  if (!text || text.startsWith('/')) return;
+  session.name = text.length > autoNameLength ? `${text.slice(0, autoNameLength).trimEnd()}…` : text;
+  session.autoNamed = false;
 }
 
 function handleHookEvent(entryId, body) {
@@ -109,6 +119,7 @@ function handleHookEvent(entryId, body) {
       return;
     case 'UserPromptSubmit':
       session.lastPromptAt = new Date().toISOString();
+      applyNameFromPrompt(session, event.prompt);
       saveStore();
       setBusy(entryId, true);
       return;
@@ -293,9 +304,13 @@ ipcMain.handle('set-default-cwd', (_e, cwd) => {
   store.defaultCwd = cwd;
   saveStore();
 });
-ipcMain.handle('create', (_e, { name, cwd }) => createSession({ name, cwd }));
+ipcMain.handle('create', (_e, { name, cwd }) =>
+  createSession(name ? { name, cwd } : { name: path.basename(cwd) || cwd, cwd, autoNamed: true }),
+);
 ipcMain.handle('rename', (_e, id, name) => {
-  findSession(id).name = name;
+  const session = findSession(id);
+  session.name = name;
+  session.autoNamed = false;
   saveStore();
 });
 ipcMain.handle('read-clipboard', async () => ({
