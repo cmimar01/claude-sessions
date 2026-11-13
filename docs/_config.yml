@@ -1,0 +1,10 @@
+title: Claude Sessions
+description: Mehrere Claude-Code-Sessions in einem Fenster verwalten
+lang: de
+repository: cmimar01/claude-sessions
+theme: jekyll-theme-primer
+plugins:
+  - jekyll-relative-links
+relative_links:
+  enabled: true
+  collections: false
