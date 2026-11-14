@@ -6,7 +6,7 @@ title: Claude Sessions
 
 Claude Sessions ist eine Desktop-App (Electron), die mehrere Claude-Code-Sessions in einem Fenster hält. Jede Session läuft als eigener `claude`-Prozess in einem eingebetteten Terminal. Die Liste links zeigt, welche Session gerade arbeitet und welche auf Eingabe wartet.
 
-Die App ist ein Wrapper um die installierte Claude-Code-CLI. Sie ersetzt weder Anmeldung noch Berechtigungen von Claude Code und spricht selbst mit keinem Dienst im Internet. Details stehen unter [Sicherheit und Datenschutz](sicherheit-und-datenschutz.md).
+Die App ist ein Wrapper um die installierte Claude-Code-CLI. Sie ersetzt weder Anmeldung noch Berechtigungen von Claude Code. Ins Internet verbindet sie sich selbst nur für die Update-Prüfung bei GitHub. Details stehen unter [Sicherheit und Datenschutz](sicherheit-und-datenschutz.md).
 
 ## Voraussetzungen
 
@@ -16,6 +16,8 @@ Die App ist ein Wrapper um die installierte Claude-Code-CLI. Sie ersetzt weder A
 ## Installation
 
 **Release-Build:** Unter [Releases](https://github.com/cmimar01/claude-sessions/releases) liegen ein Windows-Installer (`.exe`, NSIS) und ein Linux-AppImage. Die Builds entstehen per GitHub Actions aus dem getaggten Stand. Sie sind nicht code-signiert, Windows SmartScreen warnt deshalb beim ersten Start.
+
+**Updates:** Die installierte App prüft beim Start und danach alle 4 Stunden, ob unter Releases eine neuere Version liegt. Ein Update lädt sie im Hintergrund, meldet es per Systembenachrichtigung und installiert es beim nächsten Beenden. Aus dem Quellcode gestartet, prüft die App nicht.
 
 **Aus dem Quellcode:**
 
