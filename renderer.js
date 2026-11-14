@@ -21,7 +21,16 @@ function renderList() {
   $('archived-sessions').replaceChildren(...archived.map(listItem));
   $('archive').hidden = archived.length === 0;
   $('archive').querySelector('summary').textContent = `Archiv (${archived.length})`;
-  window.api.setAttentionCount(attentionIds.size);
+  showAttentionCount();
+}
+
+let shownAttentionCount = 0;
+
+function showAttentionCount() {
+  const count = attentionIds.size;
+  if (count === shownAttentionCount) return;
+  shownAttentionCount = count;
+  window.api.setAttentionCount(count, count ? badgeImage(count) : null);
 }
 
 const STATE_LABELS = {
@@ -46,7 +55,6 @@ function onBusyChanged(ids) {
   finished.forEach((id) => attentionIds.add(id));
   nowBusy.forEach((id) => attentionIds.delete(id));
   busyIds = nowBusy;
-  window.api.setBusyBadge(nowBusy.size, nowBusy.size ? badgeImage(nowBusy.size) : null);
   renderList();
 }
 
