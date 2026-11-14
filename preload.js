@@ -3,6 +3,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 contextBridge.exposeInMainWorld('api', {
   list: () => ipcRenderer.invoke('list'),
   setDefaultCwd: (cwd) => ipcRenderer.invoke('set-default-cwd', cwd),
+  setBypassPermissions: (enabled) => ipcRenderer.invoke('set-bypass-permissions', enabled),
   create: (session) => ipcRenderer.invoke('create', session),
   rename: (id, name) => ipcRenderer.invoke('rename', id, name),
   readClipboard: () => ipcRenderer.invoke('read-clipboard'),

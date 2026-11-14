@@ -268,6 +268,7 @@ function onStoreChanged(newStore) {
   [...terminals.keys()].filter((id) => !visibleIds.has(id)).forEach(disposeTerminal);
   if (selectedId && !visibleIds.has(selectedId)) deselect();
   $('default-cwd').value = store.defaultCwd;
+  $('bypass-permissions').checked = Boolean(store.bypassPermissions);
   renderList();
 }
 
@@ -301,6 +302,8 @@ $('pick-default').addEventListener('click', async () => {
   const folder = await pickInto($('default-cwd'));
   if (folder) window.api.setDefaultCwd(folder);
 });
+
+$('bypass-permissions').addEventListener('change', (e) => window.api.setBypassPermissions(e.target.checked));
 
 $('new-session').addEventListener('click', () => {
   $('new-form').hidden = false;
