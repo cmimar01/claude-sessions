@@ -36,6 +36,18 @@ button {
   cursor: pointer;
 }
 
+.checkbox-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.checkbox-row input {
+  margin: 0;
+  padding: 0;
+}
+
 .path-row {
   display: flex;
   gap: 4px;

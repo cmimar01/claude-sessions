@@ -82,7 +82,8 @@ function claudeArgs(session) {
     : session.forkOf
       ? ['--resume', session.forkOf, '--fork-session']
       : ['--session-id', claudeSessionId, ...(session.autoNamed ? [] : ['-n', session.name])];
-  return [...sessionArgs, '--settings', hookSettings(session.id)];
+  const permissionArgs = store.bypassPermissions ? ['--dangerously-skip-permissions'] : [];
+  return [...sessionArgs, ...permissionArgs, '--settings', hookSettings(session.id)];
 }
 
 function setBusy(id, busy) {
@@ -308,6 +309,10 @@ function showContextMenu(id) {
 ipcMain.handle('list', () => store);
 ipcMain.handle('set-default-cwd', (_e, cwd) => {
   store.defaultCwd = cwd;
+  saveStore();
+});
+ipcMain.handle('set-bypass-permissions', (_e, enabled) => {
+  store.bypassPermissions = enabled;
   saveStore();
 });
 ipcMain.handle('create', (_e, { name, cwd }) => {
