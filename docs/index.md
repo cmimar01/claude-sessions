@@ -32,6 +32,7 @@ Node.js-Version laut `.nvmrc`: 22.
 |---|---|
 | Neue Session | «Neue Session», Arbeitsverzeichnis wählen, «Starten». Existiert der Ordner nicht, bleibt das Formular offen und es entsteht keine Session. Ohne Namen heisst die Session zuerst wie ihr Ordner und danach wie die ersten 40 Zeichen des ersten Prompts |
 | Standardpfad | Feld oben in der Seitenleiste; gilt als Vorgabe für neue Sessions |
+| Berechtigungen überspringen | Checkbox unter dem Standardpfad. Sessions starten dann mit `--dangerously-skip-permissions`; laufende Sessions erst nach dem nächsten Start. Die Einstellung bleibt über Neustarts der App erhalten |
 | Session öffnen | Eintrag links anklicken; ein beendeter Prozess startet automatisch neu (`--resume`) |
 | Beendete Session neu starten | Im Terminal Enter drücken |
 | Text einfügen | Strg+V oder Rechtsklick ohne Markierung |
