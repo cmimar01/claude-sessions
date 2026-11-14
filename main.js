@@ -336,8 +336,7 @@ ipcMain.handle('pick-folder', async (_e, startPath) => {
 ipcMain.on('context-menu', (_e, id) => showContextMenu(id));
 ipcMain.on('attach', (_e, id, cols, rows) => attach(id, cols, rows));
 ipcMain.on('mark-waiting', (_e, id) => setBusy(id, false));
-ipcMain.on('attention-count', (_e, count) => showAttentionCount(count));
-ipcMain.on('busy-badge', (_e, count, dataUrl) => showBusyBadge(count, dataUrl));
+ipcMain.on('attention-count', (_e, count, dataUrl) => showAttentionCount(count, dataUrl));
 ipcMain.on('write', (_e, id, data) => ptys.get(id)?.write(data));
 ipcMain.on('paste-image', (_e, id) => ptys.get(id)?.write(imagePasteKey));
 ipcMain.handle('prompt-history', (_e, id) => promptHistory(id));
@@ -351,20 +350,21 @@ ipcMain.on('resize', (_e, id, cols, rows) => ptys.get(id)?.resize(cols, rows));
 const baseTitle = () => `Claude Sessions ${app.getVersion()}`;
 let attentionCount = 0;
 
-function showAttentionCount(count) {
+function showAttentionCount(count, dataUrl) {
   if (count > attentionCount && !win.isFocused()) win.flashFrame(true);
   attentionCount = count;
   win.setTitle(count ? `(${count}) ${baseTitle()}` : baseTitle());
+  showBadge(count, dataUrl);
 }
 
 // Windows has no numeric taskbar badge API; the overlay icon is the only place a count can appear on the button.
-function showBusyBadge(count, dataUrl) {
+function showBadge(count, dataUrl) {
   if (process.platform !== 'win32') {
     app.setBadgeCount(count);
     return;
   }
   const overlay = count ? nativeImage.createFromDataURL(dataUrl) : null;
-  win.setOverlayIcon(overlay, count ? `Claude arbeitet in ${count} Sessions` : '');
+  win.setOverlayIcon(overlay, count ? `${count} ungelesene Ergebnisse` : '');
 }
 
 const UPDATE_INTERVAL_MS = 4 * 60 * 60 * 1000;
