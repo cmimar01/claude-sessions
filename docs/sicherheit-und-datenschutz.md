@@ -4,9 +4,9 @@ title: Sicherheit und Datenschutz
 
 # Sicherheit und Datenschutz
 
-Stand der Prüfung: Version 0.5.0 (Commit `cd7d43a`), November 2026.
+Stand der Prüfung: Version 0.6.11 (Commit `2dc4782`), November 2026. Erste Prüfung: Version 0.5.0 (Commit `cd7d43a`).
 
-**Befund:** Die App baut keine Verbindung ins Internet auf und schickt keine Daten an Dritte. Alles, was sie speichert oder liest, bleibt lokal im Benutzerprofil. Was Claude Code selbst an Anthropic überträgt, ändert sich durch die App nicht: Es gelten dieselben Regeln wie beim Start von `claude` im Terminal. Einen Befund mit hohem Risiko gibt es nicht. Die offenen Punkte betreffen die Herkunft des Release-Builds, nicht den Code.
+**Befund:** Die App schickt keine Inhalte an Dritte. Ihre einzige eigene Internetverbindung ist die Update-Prüfung bei GitHub, die nur die installierte Version abfragt. Alles, was sie speichert oder liest, bleibt lokal im Benutzerprofil. Was Claude Code selbst an Anthropic überträgt, ändert sich durch die App nicht: Es gelten dieselben Regeln wie beim Start von `claude` im Terminal. Einen Befund mit hohem Risiko im Code gibt es nicht. Die offenen Punkte betreffen die Herkunft des Release-Builds; seit dem Autoupdater gilt das nicht mehr nur für die erste Installation, sondern für jedes Update.
 
 ## Datenflüsse
 
@@ -17,8 +17,9 @@ Stand der Prüfung: Version 0.5.0 (Commit `cd7d43a`), November 2026.
 | Sessionliste | `sessions.json` im App-Datenordner | Name, Pfad, Session-ID, Zeitstempel |
 | Prompt-Verlauf | Lesen aus `~/.claude/history.jsonl` | nur Prompts der gewählten Session |
 | Links | Standardbrowser | nur `http`/`https`, nur auf Strg+Klick |
+| Update-Prüfung | `github.com` / `api.github.com`, Releases von `cmimar01/claude-sessions` | Abfrage von `latest.yml`, bei neuer Version Download des Installers; GitHub sieht IP-Adresse und Zeitpunkt |
 
-Die App enthält keine Telemetrie, keinen Update-Check und lädt keine Skripte oder Styles aus dem Netz. Die Content-Security-Policy (`default-src 'self'`) verhindert das auch technisch.
+Die App enthält keine Telemetrie und lädt keine Skripte oder Styles aus dem Netz in die Oberfläche. Die Content-Security-Policy (`default-src 'self'`) verhindert das auch technisch. Für die Update-Prüfung gilt sie nicht, weil diese im Hauptprozess läuft.
 
 ## Geprüfte Punkte
 
@@ -30,11 +31,13 @@ Die App enthält keine Telemetrie, keinen Update-Check und lädt keine Skripte o
 
 **Prozessstart.** `claude` wird direkt gestartet, nicht über eine Shell. Session-Namen landen dadurch nicht in einer Befehlszeile, die eine Shell auswertet. Die Umgebungsvariablen werden unverändert weitergegeben, ausser `CLAUDE_CODE_CHILD_SESSION`.
 
-**Abhängigkeiten.** Zur Laufzeit braucht die App vier Pakete: `@xterm/xterm`, zwei xterm-Addons und `node-pty`. `npm audit` meldet dafür keine Schwachstelle. Sechs mittelschwere Meldungen betreffen nur das Build-Werkzeug `electron-builder` (ReDoS in `minimatch`) und landen nicht im ausgelieferten Programm.
+**Autoupdater.** `electron-updater` prüft beim Start und danach alle 4 Stunden die GitHub Releases, lädt eine neuere Version im Hintergrund und installiert sie beim Beenden der App, ohne Rückfrage. Die Prüfung läuft nur in der installierten App, nicht beim Start aus dem Quellcode. Der Updater vergleicht den SHA-512-Hash aus `latest.yml` mit dem Download. Das schützt vor beschädigten Downloads, nicht vor einem manipulierten Release, denn Hash und Installer stammen aus demselben Release. Eine Signaturprüfung gibt es nicht, weil die Builds nicht signiert sind.
+
+**Abhängigkeiten.** Zur Laufzeit braucht die App sechs Pakete: `@xterm/xterm`, drei xterm-Addons, `node-pty` und `electron-updater`. `npm audit --omit=dev` meldet dafür keine Schwachstelle (Stand 0.6.11). Sechs mittelschwere Meldungen betreffen nur das Build-Werkzeug `electron-builder` (ReDoS in `minimatch`) und landen nicht im ausgelieferten Programm.
 
 ## Offene Punkte
 
-**Herkunft des Installers.** Das Repository liegt in einem persönlichen GitHub-Konto, die Releases sind nicht code-signiert. Wer den Installer nutzt, vertraut dem Konto und dem Build in GitHub Actions. Die Actions sind über Versions-Tags (`@v4`) eingebunden, nicht über Commit-Hashes. Wer das vermeiden will, baut aus dem geprüften Quellstand selbst (`npm ci && npm start`).
+**Herkunft des Installers.** Das Repository liegt in einem persönlichen GitHub-Konto, die Releases sind nicht code-signiert. Wer den Installer nutzt, vertraut dem Konto und dem Build in GitHub Actions, und über den Autoupdater auch jedem künftigen Release: Wer das Konto oder die Pipeline übernimmt, kann Code auf alle installierten Rechner verteilen, ohne dass jemand zustimmt. Die Actions sind über Versions-Tags (`@v4`) eingebunden, nicht über Commit-Hashes. Wer das vermeiden will, baut aus dem geprüften Quellstand selbst (`npm ci && npm start`); dann prüft die App nicht auf Updates.
 
 **Firmenrichtlinien.** Ob nicht signierte Software aus einem privaten Konto auf Firmengeräten zulässig ist, entscheidet die interne IT, nicht diese Prüfung.
 
@@ -44,6 +47,6 @@ Die App enthält keine Telemetrie, keinen Update-Check und lädt keine Skripte o
 
 ## Empfehlungen für den Betrieb
 
-1. Beim ersten Einsatz aus dem Quellcode starten oder den Installer nur aus der Releases-Seite dieses Repositorys beziehen.
+1. Beim ersten Einsatz aus dem Quellcode starten oder den Installer nur aus der Releases-Seite dieses Repositorys beziehen. Wo automatische Updates aus einem privaten Konto nicht zulässig sind, aus dem Quellcode starten.
 2. Für Sessions mit vertraulichem Kontext neutrale Namen wählen, statt das Feld leer zu lassen.
 3. Nach Abschluss eines Mandats Transcripts in `~/.claude/projects` gezielt löschen, nicht nur den Listeneintrag.
