@@ -56,7 +56,7 @@ Die Liste ist nach der letzten eigenen Nachricht sortiert, ein Statuswechsel ver
 | grüner Punkt, gedämpft | Läuft | Prozess läuft, wartet auf Eingabe, bereits gesehen |
 | kein Symbol | Nicht gestartet | Kein Prozess |
 
-«Wartet auf dich» erlischt, sobald die Session geöffnet wird. Der Fenstertitel zeigt die Zahl der wartenden Sessions, und liegt das Fenster im Hintergrund, blinkt der Taskleisten-Knopf, wenn eine Session hinzukommt. Ein roter Zähler am App-Icon in der Taskleiste zeigt, in wie vielen Sessions Claude gerade arbeitet.
+«Wartet auf dich» erlischt, sobald die Session geöffnet wird. Der Fenstertitel zeigt die Zahl der wartenden Sessions, und liegt das Fenster im Hintergrund, blinkt der Taskleisten-Knopf, wenn eine Session hinzukommt. Ein roter Zähler am App-Icon in der Taskleiste zeigt dieselbe Zahl, also die ungelesenen Ergebnisse. Unter Linux erscheint er nur, wenn die Desktop-Umgebung Zähler am Icon unterstützt.
 
 Das Kontextmenü (Rechtsklick auf einen Eintrag) bietet: Umbenennen, Resume-Befehl kopieren, Ordner öffnen, Neu starten, Session beenden, Arbeitsverzeichnis ändern, Als neue Session forken, Archivieren/Wiederherstellen und Endgültig entfernen. «Entfernen» löscht nur den Listeneintrag; das Transcript von Claude Code bleibt erhalten und ist mit `claude --resume <id>` weiter erreichbar.
 
