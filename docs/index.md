@@ -40,7 +40,7 @@ Node.js-Version laut `.nvmrc`: 22.
 | Text einfügen | Strg+V oder Rechtsklick ohne Markierung |
 | Bild einfügen | Strg+V mit Bild in der Zwischenablage |
 | Kopieren | Text markieren, Rechtsklick |
-| Link öffnen | Strg+Klick (nur `http`/`https`) |
+| Link öffnen | Strg+Klick auf einen Link oder eine URL im Text (nur `http`/`https`). Hat Claude Code die Maus übernommen, öffnet es den Link selbst |
 | Neue Zeile im Prompt | Strg+Enter |
 | Frühere Prompts der Session | Alt+Pfeil hoch / Alt+Pfeil runter |
 | Status «arbeitet» zurücksetzen | Esc oder Strg+C |
