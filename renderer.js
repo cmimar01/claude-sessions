@@ -179,6 +179,7 @@ function createTerminal(id) {
     else if (data === '\r') start(id);
   });
   term.onResize(({ cols, rows }) => window.api.resize(id, cols, rows));
+  term.onSelectionChange(updateLaunchButton);
   const entry = { term, fit, host, history: null, historyIndex: -1, recall: Promise.resolve() };
   terminals.set(id, entry);
   return entry;
@@ -226,6 +227,19 @@ function openLinkOnCtrlClick(term, event, url) {
   if (event.ctrlKey && !claudeReceivesClicks) window.api.openExternal(url);
 }
 
+const claudeCommandLine = /^\s*claude(\.exe)?(\s|$)/im;
+
+function updateLaunchButton() {
+  const term = terminals.get(selectedId)?.term;
+  $('launch-selection').hidden = !term?.hasSelection() || !claudeCommandLine.test(term.getSelection());
+}
+
+function launchSelection() {
+  const { term } = terminals.get(selectedId);
+  window.api.launchFromSelection(selectedId, term.getSelection());
+  term.clearSelection();
+}
+
 function copyOrPaste(id, term) {
   if (!term.hasSelection()) return paste(id, term);
   window.api.writeClipboard(term.getSelection());
@@ -264,12 +278,14 @@ function select(id) {
   entry.term.focus();
   attentionIds.delete(id);
   if (!running.has(id)) start(id);
+  updateLaunchButton();
   renderList();
 }
 
 function deselect() {
   selectedId = null;
   $('placeholder').hidden = false;
+  updateLaunchButton();
 }
 
 function onStoreChanged(newStore) {
@@ -312,6 +328,8 @@ $('pick-default').addEventListener('click', async () => {
   const folder = await pickInto($('default-cwd'));
   if (folder) window.api.setDefaultCwd(folder);
 });
+
+$('launch-selection').addEventListener('click', launchSelection);
 
 $('bypass-permissions').addEventListener('change', (e) => window.api.setBypassPermissions(e.target.checked));
 
