@@ -40,6 +40,7 @@ Node.js-Version laut `.nvmrc`: 22.
 | Text einfügen | Strg+V oder Rechtsklick ohne Markierung |
 | Bild einfügen | Strg+V mit Bild in der Zwischenablage |
 | Kopieren | Text markieren, Rechtsklick |
+| Befehle als Session starten | Befehle in der Ausgabe markieren, bis und mit der Zeile, die mit `claude` beginnt; oben rechts erscheint «Als Session starten». Die App übernimmt aus der Markierung nur Zeilen, deren erstes Wort ein ausführbarer Befehl ist, und zeigt sie vor dem Start zur Bestätigung. Befehle vor der `claude`-Zeile laufen einmalig als Vorbereitung im Arbeitsverzeichnis der aktuellen Session (Windows: PowerShell), schlägt einer fehl, startet Claude nicht. `cd`-Zeilen legen das Arbeitsverzeichnis der neuen Session fest. Die Argumente der `claude`-Zeile, etwa `--plugin-dir`, gelten auch bei jedem Neustart, Fork und im Resume-Befehl; `-n` setzt den Namen |
 | Link öffnen | Strg+Klick auf einen Link oder eine URL im Text (nur `http`/`https`). Hat Claude Code die Maus übernommen, öffnet es den Link selbst |
 | Neue Zeile im Prompt | Strg+Enter |
 | Frühere Prompts der Session | Alt+Pfeil hoch / Alt+Pfeil runter |
@@ -64,7 +65,7 @@ Das Kontextmenü (Rechtsklick auf einen Eintrag) bietet: Umbenennen, Resume-Befe
 
 | Datei | Inhalt | Zugriff |
 |---|---|---|
-| `%APPDATA%\claude-sessions\sessions.json` (Linux: `~/.config/claude-sessions/`) | Name, Arbeitsverzeichnis, Session-ID, Zeitstempel, Archiv-Flag pro Session | lesen, schreiben |
+| `%APPDATA%\claude-sessions\sessions.json` (Linux: `~/.config/claude-sessions/`) | Name, Arbeitsverzeichnis, Session-ID, Zeitstempel, Archiv-Flag, zusätzliche `claude`-Argumente und noch nicht ausgeführte Vorbereitungsbefehle pro Session | lesen, schreiben |
 | `~/.claude/projects/*/<id>.jsonl` | Transcripts von Claude Code | nur Existenzprüfung, kein Inhalt |
 | `~/.claude/history.jsonl` | Prompt-Verlauf von Claude Code | lesen bei Alt+Pfeil, gefiltert auf die eigene Session |
 
