@@ -172,6 +172,19 @@ li.editing .name {
   padding: 4px;
 }
 
+#launch-selection {
+  position: absolute;
+  top: 8px;
+  right: 16px;
+  z-index: 10;
+  background: #0e639c;
+  border-color: #1177bb;
+}
+
+#launch-selection[hidden] {
+  display: none;
+}
+
 #placeholder {
   padding: 20px;
   color: #888;

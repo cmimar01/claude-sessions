@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('api', {
   openExternal: (url) => ipcRenderer.send('open-external', url),
   pickFolder: (startPath) => ipcRenderer.invoke('pick-folder', startPath),
   showContextMenu: (id) => ipcRenderer.send('context-menu', id),
+  launchFromSelection: (sourceId, text) => ipcRenderer.send('launch-from-selection', sourceId, text),
   attach: (id, cols, rows) => ipcRenderer.send('attach', id, cols, rows),
   markWaiting: (id) => ipcRenderer.send('mark-waiting', id),
   setAttentionCount: (count, dataUrl) => ipcRenderer.send('attention-count', count, dataUrl),

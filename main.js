@@ -6,6 +6,7 @@ const crypto = require('crypto');
 const http = require('http');
 const pty = require('node-pty');
 const { autoUpdater } = require('electron-updater');
+const { launchPlan, setupShell } = require('./launch-plan');
 
 app.setPath('userData', path.join(app.getPath('appData'), 'claude-sessions'));
 const storePath = path.join(app.getPath('userData'), 'sessions.json');
@@ -83,7 +84,7 @@ function claudeArgs(session) {
       ? ['--resume', session.forkOf, '--fork-session']
       : ['--session-id', claudeSessionId, ...(session.autoNamed ? [] : ['-n', session.name])];
   const permissionArgs = store.bypassPermissions ? ['--dangerously-skip-permissions'] : [];
-  return [...sessionArgs, ...permissionArgs, '--settings', hookSettings(session.id)];
+  return [...sessionArgs, ...permissionArgs, ...(session.extraArgs ?? []), '--settings', hookSettings(session.id)];
 }
 
 function setBusy(id, busy) {
@@ -158,30 +159,80 @@ function isDirectory(cwd) {
   return path.isAbsolute(cwd) && Boolean(fs.statSync(cwd, { throwIfNoEntry: false })?.isDirectory());
 }
 
-function attach(id, cols, rows) {
-  if (ptys.has(id)) return;
-  const session = findSession(id);
-  if (!isDirectory(session.cwd)) {
-    send('pty-data', id, `\x1b[31mPfad nicht gefunden: ${session.cwd}\x1b[0m\r\n`);
-    send('pty-exit', id);
-    return;
-  }
-  const proc = pty.spawn(claudeExecutable, claudeArgs(session), {
-    name: 'xterm-256color',
-    cwd: session.cwd,
-    cols,
-    rows,
-    env: sessionEnv(),
-  });
+function reportMissingDirectory(id, cwd) {
+  send('pty-data', id, `\x1b[31mPfad nicht gefunden: ${cwd}\x1b[0m\r\n`);
+  send('pty-exit', id);
+}
+
+function spawnTracked(id, file, args, { cwd, cols, rows }, onExit) {
+  const proc = pty.spawn(file, args, { name: 'xterm-256color', cwd, cols, rows, env: sessionEnv() });
   proc.onData((data) => send('pty-data', id, data));
-  proc.onExit(() => {
+  proc.onExit((event) => {
     const isCurrentProcess = ptys.get(id) === proc;
     if (!isCurrentProcess) return;
     ptys.delete(id);
+    onExit(event, proc);
+  });
+  ptys.set(id, proc);
+}
+
+function attach(id, cols, rows) {
+  if (ptys.has(id)) return;
+  const session = findSession(id);
+  if (session.setup) return runSetup(session, cols, rows);
+  if (!isDirectory(session.cwd)) return reportMissingDirectory(id, session.cwd);
+  spawnTracked(id, claudeExecutable, claudeArgs(session), { cwd: session.cwd, cols, rows }, () => {
     setBusy(id, false);
     send('pty-exit', id);
   });
-  ptys.set(id, proc);
+}
+
+// Setup commands such as "git worktree add" fail when repeated, so they run once and are dropped before the result is known.
+function runSetup(session, cols, rows) {
+  const { id, setup } = session;
+  delete session.setup;
+  saveStore();
+  if (!isDirectory(setup.cwd)) return reportMissingDirectory(id, setup.cwd);
+  send('pty-data', id, setup.commands.map((command) => `\x1b[36m> ${command}\x1b[0m\r\n`).join(''));
+  const [shell, args] = setupShell(setup.commands);
+  spawnTracked(id, shell, args, { cwd: setup.cwd, cols, rows }, ({ exitCode }, proc) => {
+    if (exitCode === 0) return attach(id, proc.cols, proc.rows);
+    send('pty-data', id, `\x1b[31mVorbereitung fehlgeschlagen (Exit-Code ${exitCode})\x1b[0m\r\n`);
+    send('pty-exit', id);
+  });
+}
+
+async function launchFromSelection(sourceId, text) {
+  const source = findSession(sourceId);
+  const plan = launchPlan(text, source.cwd);
+  if (!plan) {
+    await dialog.showMessageBox(win, {
+      type: 'info',
+      message: 'Keine claude-Zeile in der Markierung',
+      detail: 'Markiere die Befehle bis und mit der Zeile, die mit "claude" beginnt.',
+    });
+    return;
+  }
+  const setupDetail = plan.setup.length
+    ? [`Vorbereitung, einmalig in ${source.cwd}:`, ...plan.setup.map((command) => `  ${command}`), '']
+    : [];
+  const { response } = await dialog.showMessageBox(win, {
+    type: 'question',
+    buttons: ['Starten', 'Abbrechen'],
+    defaultId: 1,
+    cancelId: 1,
+    message: 'Befehle als neue Session starten?',
+    detail: [`Arbeitsverzeichnis: ${plan.cwd}`, '', ...setupDetail, plan.claudeLine].join('\n'),
+  });
+  if (response !== 0) return;
+  const id = createSession({
+    name: plan.name ?? (path.basename(plan.cwd) || plan.cwd),
+    cwd: plan.cwd,
+    autoNamed: !plan.name,
+    ...(plan.claudeArgs.length && { extraArgs: plan.claudeArgs }),
+    ...(plan.setup.length && { setup: { cwd: source.cwd, commands: plan.setup } }),
+  });
+  send('select-requested', id);
 }
 
 function kill(id) {
@@ -246,7 +297,8 @@ async function promptHistory(id) {
 
 function resumeCommand(session) {
   const separator = process.platform === 'win32' ? ';' : ' &&';
-  return `cd "${session.cwd}"${separator} claude --resume ${session.claudeSessionId}`;
+  const extraArgs = (session.extraArgs ?? []).map((arg) => (/[\s"]/.test(arg) ? ` "${arg}"` : ` ${arg}`)).join('');
+  return `cd "${session.cwd}"${separator} claude --resume ${session.claudeSessionId}${extraArgs}`;
 }
 
 function createSession(fields) {
@@ -276,7 +328,12 @@ async function changeWorkingDirectory(session) {
 }
 
 function fork(session) {
-  const forkId = createSession({ name: `${session.name} (Fork)`, cwd: session.cwd, forkOf: session.claudeSessionId });
+  const forkId = createSession({
+    name: `${session.name} (Fork)`,
+    cwd: session.cwd,
+    forkOf: session.claudeSessionId,
+    extraArgs: session.extraArgs,
+  });
   send('select-requested', forkId);
 }
 
@@ -334,6 +391,7 @@ ipcMain.handle('pick-folder', async (_e, startPath) => {
   return result.canceled ? null : result.filePaths[0];
 });
 ipcMain.on('context-menu', (_e, id) => showContextMenu(id));
+ipcMain.on('launch-from-selection', (_e, sourceId, text) => launchFromSelection(sourceId, text));
 ipcMain.on('attach', (_e, id, cols, rows) => attach(id, cols, rows));
 ipcMain.on('mark-waiting', (_e, id) => setBusy(id, false));
 ipcMain.on('attention-count', (_e, count, dataUrl) => showAttentionCount(count, dataUrl));
