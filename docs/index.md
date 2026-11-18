@@ -42,7 +42,7 @@ Node.js-Version laut `.nvmrc`: 22.
 | Kopieren | Text markieren, Rechtsklick. Hat Claude Code die Maus übernommen, kopiert es die eigene Markierung beim Loslassen selbst (OSC 52) |
 | Befehle als Session starten | Befehle in der Ausgabe markieren, bis und mit der Zeile, die mit `claude` beginnt; oben rechts erscheint «Als Session starten». Hat Claude Code die Maus übernommen, markiert es selbst und kopiert beim Loslassen; der Knopf erscheint dann, sobald die Kopie in der Zwischenablage liegt. Die App übernimmt aus der Markierung nur Zeilen, deren erstes Wort ein ausführbarer Befehl ist, und zeigt sie vor dem Start zur Bestätigung. Befehle vor der `claude`-Zeile laufen einmalig als Vorbereitung im Arbeitsverzeichnis der aktuellen Session (Windows: PowerShell), schlägt einer fehl, startet Claude nicht. `cd`-Zeilen legen das Arbeitsverzeichnis der neuen Session fest. Die Argumente der `claude`-Zeile, etwa `--plugin-dir`, gelten auch bei jedem Neustart, Fork und im Resume-Befehl; `-n` setzt den Namen |
 | Link öffnen | Strg+Klick auf einen Link oder eine URL im Text (nur `http`/`https`). Hat Claude Code die Maus übernommen, öffnet es den Link selbst |
-| Neue Zeile im Prompt | Strg+Enter |
+| Neue Zeile im Prompt | Strg+Enter oder Shift+Enter |
 | Frühere Prompts der Session | Alt+Pfeil hoch / Alt+Pfeil runter |
 | Status «arbeitet» zurücksetzen | Esc oder Strg+C |
 
