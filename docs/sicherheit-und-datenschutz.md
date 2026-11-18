@@ -16,6 +16,7 @@ Stand der Prüfung: Version 0.6.11 (Commit `2dc4782`), November 2026. Erste Prü
 | Hook-Ereignisse | `http://127.0.0.1:<zufälliger Port>/<zufälliges Token>/…` | JSON der Claude-Code-Hooks `SessionStart`, `UserPromptSubmit`, `PostToolUse`, `Stop`, `Notification` |
 | Sessionliste | `sessions.json` im App-Datenordner | Name, Pfad, Session-ID, Zeitstempel |
 | Prompt-Verlauf | Lesen aus `~/.claude/history.jsonl` | nur Prompts der gewählten Session |
+| Zwischenablage | lokal | Schreiben beim Kopieren und bei OSC 52 aus dem Terminal; Lesen beim Einfügen und, wenn Claude Code die Maus übernommen hat, beim Loslassen der Maus, um «Als Session starten» anzubieten. Der Inhalt verlässt die App nur, wenn du ihn einfügst oder die Befehle bestätigst |
 | Links | Standardbrowser | nur `http`/`https`, nur auf Strg+Klick |
 | Update-Prüfung | `github.com` / `api.github.com`, Releases von `cmimar01/claude-sessions` | Abfrage von `latest.yml`, bei neuer Version Download des Installers; GitHub sieht IP-Adresse und Zeitpunkt |
 
