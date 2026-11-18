@@ -158,6 +158,10 @@ function createTerminal(id) {
     },
     { capture: true },
   );
+  host.addEventListener('mousedown', (e) => {
+    if (e.button === 0 && term.modes.mouseTrackingMode !== 'none') watchAppSelection(id);
+  });
+  term.parser.registerOscHandler(52, copyFromOsc52);
   term.attachCustomKeyEventHandler((e) => {
     const isPaste = e.ctrlKey && !e.shiftKey && !e.altKey && e.key === 'v';
     const historyStep = { ArrowUp: 1, ArrowDown: -1 }[e.key];
@@ -229,15 +233,42 @@ function openLinkOnCtrlClick(term, event, url) {
 
 const claudeCommandLine = /^\s*claude(\.exe)?(\s|$)/im;
 
+let launchText = null;
+
+function showLaunchButton(text) {
+  launchText = text && claudeCommandLine.test(text) ? text : null;
+  $('launch-selection').hidden = !launchText;
+}
+
 function updateLaunchButton() {
   const term = terminals.get(selectedId)?.term;
-  $('launch-selection').hidden = !term?.hasSelection() || !claudeCommandLine.test(term.getSelection());
+  showLaunchButton(term?.hasSelection() ? term.getSelection() : null);
+}
+
+// With mouse tracking on, Claude Code selects text itself and copies it on release; xterm never sees a selection.
+async function watchAppSelection(id) {
+  showLaunchButton(null);
+  const released = new Promise((resolve) => window.addEventListener('mouseup', resolve, { once: true }));
+  const { text: before } = await window.api.readClipboard();
+  await released;
+  await pause(300);
+  const { text } = await window.api.readClipboard();
+  if (id === selectedId && text !== before) showLaunchButton(text);
+}
+
+function copyFromOsc52(data) {
+  const payload = data.slice(data.indexOf(';') + 1);
+  const isBase64 = /^[A-Za-z0-9+/]+=*$/.test(payload);
+  if (!isBase64) return true;
+  const bytes = Uint8Array.from(atob(payload), (char) => char.charCodeAt(0));
+  window.api.writeClipboard(new TextDecoder().decode(bytes));
+  return true;
 }
 
 function launchSelection() {
-  const { term } = terminals.get(selectedId);
-  window.api.launchFromSelection(selectedId, term.getSelection());
-  term.clearSelection();
+  window.api.launchFromSelection(selectedId, launchText);
+  terminals.get(selectedId)?.term.clearSelection();
+  showLaunchButton(null);
 }
 
 function copyOrPaste(id, term) {
