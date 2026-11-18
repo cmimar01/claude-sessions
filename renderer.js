@@ -166,7 +166,7 @@ function createTerminal(id) {
     const isPaste = e.ctrlKey && !e.shiftKey && !e.altKey && e.key === 'v';
     const historyStep = { ArrowUp: 1, ArrowDown: -1 }[e.key];
     const isHistoryRecall = e.altKey && !e.ctrlKey && !e.shiftKey && historyStep !== undefined;
-    const isNewline = e.ctrlKey && !e.shiftKey && !e.altKey && e.key === 'Enter';
+    const isNewline = e.ctrlKey !== e.shiftKey && !e.altKey && e.key === 'Enter';
     if (!isPaste && !isHistoryRecall && !isNewline) return true;
     e.preventDefault();
     if (e.type !== 'keydown') return false;
