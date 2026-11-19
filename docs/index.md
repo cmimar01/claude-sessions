@@ -36,6 +36,7 @@ Node.js-Version laut `.nvmrc`: 22.
 | Standardpfad | Feld oben in der Seitenleiste; gilt als Vorgabe für neue Sessions |
 | Berechtigungen überspringen | Checkbox unter dem Standardpfad. Sessions starten dann mit `--dangerously-skip-permissions`; laufende Sessions erst nach dem nächsten Start. Die Einstellung bleibt über Neustarts der App erhalten |
 | Session öffnen | Eintrag links anklicken; ein beendeter Prozess startet automatisch neu (`--resume`) |
+| Sessions filtern | Text ins Feld über der Liste tippen. Aktive und archivierte Sessions zeigen nur noch Einträge, deren Name oder Arbeitsverzeichnis den Text enthält. Das Archiv klappt dabei auf |
 | Beendete Session neu starten | Im Terminal Enter drücken |
 | Text einfügen | Strg+V oder Rechtsklick ohne Markierung |
 | Bild einfügen | Strg+V mit Bild in der Zwischenablage |
