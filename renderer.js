@@ -13,13 +13,17 @@ const lastActivity = (session) => session.lastPromptAt ?? session.createdAt;
 function renderList() {
   // Rebuilding the list during a rename would destroy the edited element and discard the input.
   if (renamingId) return;
-  const active = store.sessions
+  const query = $('list-filter').value.trim().toLowerCase();
+  const matchesQuery = (text) => text.toLowerCase().includes(query);
+  const matching = store.sessions.filter((s) => matchesQuery(s.name) || matchesQuery(s.cwd));
+  const active = matching
     .filter((s) => !s.archived)
     .sort((a, b) => lastActivity(b).localeCompare(lastActivity(a)));
-  const archived = store.sessions.filter((s) => s.archived);
+  const archived = matching.filter((s) => s.archived);
   $('sessions').replaceChildren(...active.map(listItem));
   $('archived-sessions').replaceChildren(...archived.map(listItem));
   $('archive').hidden = archived.length === 0;
+  if (query) $('archive').open = true;
   $('archive').querySelector('summary').textContent = `Archiv (${archived.length})`;
   showAttentionCount();
 }
@@ -354,6 +358,7 @@ window.addEventListener('focus', () => {
   if (selectedId) clearAttention(selectedId);
 });
 
+$('list-filter').addEventListener('input', renderList);
 $('default-cwd').addEventListener('change', (e) => window.api.setDefaultCwd(e.target.value.trim()));
 $('pick-default').addEventListener('click', async () => {
   const folder = await pickInto($('default-cwd'));
