@@ -4,18 +4,26 @@ let busyIds = new Set();
 const attentionIds = new Set();
 let store;
 let selectedId = null;
-let renamingId = null;
+let editingId = null;
 
 const $ = (id) => document.getElementById(id);
 
 const lastActivity = (session) => session.lastPromptAt ?? session.createdAt;
 
+function matchesFilter(session, terms) {
+  const tags = (session.tags ?? []).map((tag) => tag.toLowerCase());
+  const text = [session.name, session.cwd, ...tags].join('\n').toLowerCase();
+  return terms.every((term) =>
+    term.startsWith('#') ? tags.some((tag) => tag.startsWith(term.slice(1))) : text.includes(term),
+  );
+}
+
 function renderList() {
-  // Rebuilding the list during a rename would destroy the edited element and discard the input.
-  if (renamingId) return;
+  // Rebuilding the list during an in-place edit would destroy the edited element and discard the input.
+  if (editingId) return;
   const query = $('list-filter').value.trim().toLowerCase();
-  const matchesQuery = (text) => text.toLowerCase().includes(query);
-  const matching = store.sessions.filter((s) => matchesQuery(s.name) || matchesQuery(s.cwd));
+  const terms = query.split(/\s+/).filter(Boolean);
+  const matching = store.sessions.filter((s) => matchesFilter(s, terms));
   const active = matching
     .filter((s) => !s.archived)
     .sort((a, b) => lastActivity(b).localeCompare(lastActivity(a)));
@@ -94,7 +102,7 @@ function listItem(session) {
   const name = document.createElement('span');
   name.className = 'name';
   name.textContent = session.name;
-  li.append(name);
+  li.append(name, tagLine(session.tags ?? []));
   const cwd = document.createElement('small');
   cwd.textContent = session.cwd;
   li.append(cwd);
@@ -106,29 +114,63 @@ function listItem(session) {
   return li;
 }
 
-function startRename(id) {
-  const li = document.querySelector(`li[data-id="${id}"]`);
-  const name = li.querySelector('.name');
-  renamingId = id;
+function tagLine(tags) {
+  const line = document.createElement('small');
+  line.className = 'tags';
+  line.hidden = tags.length === 0;
+  line.append(...tags.map(tagChip));
+  return line;
+}
+
+function tagChip(tag) {
+  const chip = document.createElement('span');
+  chip.className = 'tag';
+  chip.textContent = `#${tag}`;
+  chip.title = `Nach #${tag} filtern`;
+  chip.addEventListener('click', (e) => {
+    e.stopPropagation();
+    $('list-filter').value = `#${tag}`;
+    renderList();
+  });
+  return chip;
+}
+
+function editInPlace(id, element, onSubmit) {
+  const li = element.closest('li');
+  editingId = id;
   li.classList.add('editing');
-  name.contentEditable = 'plaintext-only';
-  name.focus();
-  getSelection().selectAllChildren(name);
-  const finish = (newName) => {
-    if (renamingId !== id) return;
-    renamingId = null;
-    const session = store.sessions.find((s) => s.id === id);
-    if (newName && session && newName !== session.name) window.api.rename(id, newName);
+  element.hidden = false;
+  element.contentEditable = 'plaintext-only';
+  element.focus();
+  getSelection().selectAllChildren(element);
+  const finish = (submitted) => {
+    if (editingId !== id) return;
+    editingId = null;
+    if (submitted) onSubmit(element.textContent.trim());
     renderList();
   };
-  name.addEventListener('click', (e) => e.stopPropagation());
-  name.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') finish(null);
+  element.addEventListener('click', (e) => e.stopPropagation());
+  element.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') finish(false);
     if (e.key !== 'Enter') return;
     e.preventDefault();
-    finish(name.textContent.trim());
+    finish(true);
   });
-  name.addEventListener('blur', () => finish(null));
+  element.addEventListener('blur', () => finish(false));
+}
+
+function startRename(id) {
+  const name = document.querySelector(`li[data-id="${id}"] .name`);
+  editInPlace(id, name, (newName) => {
+    const session = store.sessions.find((s) => s.id === id);
+    if (newName && session && newName !== session.name) window.api.rename(id, newName);
+  });
+}
+
+function startEditTags(id) {
+  const tags = document.querySelector(`li[data-id="${id}"] .tags`);
+  tags.textContent = [...tags.children].map((chip) => chip.textContent).join(' ');
+  editInPlace(id, tags, (text) => window.api.setTags(id, text));
 }
 
 function createTerminal(id) {
@@ -348,6 +390,7 @@ window.api.onExit((id) => {
 });
 window.api.onListChanged(onStoreChanged);
 window.api.onRenameRequested(startRename);
+window.api.onEditTagsRequested(startEditTags);
 window.api.onSelectRequested(select);
 window.api.onRestartRequested((id) => {
   running.delete(id);

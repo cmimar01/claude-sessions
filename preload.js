@@ -6,6 +6,7 @@ contextBridge.exposeInMainWorld('api', {
   setBypassPermissions: (enabled) => ipcRenderer.invoke('set-bypass-permissions', enabled),
   create: (session) => ipcRenderer.invoke('create', session),
   rename: (id, name) => ipcRenderer.invoke('rename', id, name),
+  setTags: (id, text) => ipcRenderer.invoke('set-tags', id, text),
   readClipboard: () => ipcRenderer.invoke('read-clipboard'),
   promptHistory: (id) => ipcRenderer.invoke('prompt-history', id),
   writeClipboard: (text) => ipcRenderer.send('write-clipboard', text),
@@ -26,4 +27,5 @@ contextBridge.exposeInMainWorld('api', {
   onRestartRequested: (callback) => ipcRenderer.on('restart-requested', (_e, id) => callback(id)),
   onSelectRequested: (callback) => ipcRenderer.on('select-requested', (_e, id) => callback(id)),
   onRenameRequested: (callback) => ipcRenderer.on('rename-requested', (_e, id) => callback(id)),
+  onEditTagsRequested: (callback) => ipcRenderer.on('edit-tags-requested', (_e, id) => callback(id)),
 });

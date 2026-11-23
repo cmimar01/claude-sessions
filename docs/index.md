@@ -36,7 +36,8 @@ Node.js-Version laut `.nvmrc`: 22.
 | Standardpfad | Feld oben in der Seitenleiste; gilt als Vorgabe für neue Sessions |
 | Berechtigungen überspringen | Checkbox unter dem Standardpfad. Sessions starten dann mit `--dangerously-skip-permissions`; laufende Sessions erst nach dem nächsten Start. Die Einstellung bleibt über Neustarts der App erhalten |
 | Session öffnen | Eintrag links anklicken; ein beendeter Prozess startet automatisch neu (`--resume`) |
-| Sessions filtern | Text ins Feld über der Liste tippen. Aktive und archivierte Sessions zeigen nur noch Einträge, deren Name oder Arbeitsverzeichnis den Text enthält. Das Archiv klappt dabei auf |
+| Sessions filtern | Text ins Feld über der Liste tippen. Aktive und archivierte Sessions zeigen nur noch Einträge, deren Name, Arbeitsverzeichnis oder Tags jedes eingegebene Wort enthalten. Ein Wort mit `#` sucht nur in den Tags, nach Wortanfang: `#ref` findet `#refinement`. Das Archiv klappt dabei auf |
+| Tags vergeben | Rechtsklick auf einen Eintrag, «Tags bearbeiten…», Tags durch Leerzeichen getrennt eintippen (`#refinement #bdd`, das `#` ist optional), Enter speichert. Die Tags stehen unter dem Namen; ein Klick auf einen Tag filtert die Liste danach |
 | Beendete Session neu starten | Im Terminal Enter drücken |
 | Text einfügen | Strg+V oder Rechtsklick ohne Markierung |
 | Bild einfügen | Strg+V mit Bild in der Zwischenablage |
@@ -60,7 +61,7 @@ Die Liste ist nach der letzten eigenen Nachricht sortiert, ein Statuswechsel ver
 
 «Wartet auf dich» erlischt, sobald die Session geöffnet wird. Der Fenstertitel zeigt die Zahl der wartenden Sessions, und liegt das Fenster im Hintergrund, blinkt der Taskleisten-Knopf, wenn eine Session hinzukommt. Ein roter Zähler am App-Icon in der Taskleiste zeigt dieselbe Zahl, also die ungelesenen Ergebnisse. Unter Linux erscheint er nur, wenn die Desktop-Umgebung Zähler am Icon unterstützt.
 
-Das Kontextmenü (Rechtsklick auf einen Eintrag) bietet: Umbenennen, Resume-Befehl kopieren, Ordner öffnen, Neu starten, Session beenden, Arbeitsverzeichnis ändern, Als neue Session forken, Archivieren/Wiederherstellen und Endgültig entfernen. «Entfernen» löscht nur den Listeneintrag; das Transcript von Claude Code bleibt erhalten und ist mit `claude --resume <id>` weiter erreichbar.
+Das Kontextmenü (Rechtsklick auf einen Eintrag) bietet: Umbenennen, Tags bearbeiten, Resume-Befehl kopieren, Ordner öffnen, Neu starten, Session beenden, Arbeitsverzeichnis ändern, Als neue Session forken, Archivieren/Wiederherstellen und Endgültig entfernen. «Entfernen» löscht nur den Listeneintrag; das Transcript von Claude Code bleibt erhalten und ist mit `claude --resume <id>` weiter erreichbar.
 
 ## Wo die App Daten ablegt
 
