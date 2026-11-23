@@ -15,7 +15,7 @@ Die App ist ein Wrapper um die installierte Claude-Code-CLI. Sie ersetzt weder A
 
 ## Installation
 
-**Release-Build:** Unter [Releases](https://github.com/cmimar01/claude-sessions/releases) liegen ein Windows-Installer (`.exe`, NSIS) und ein Linux-AppImage. Die Builds entstehen per GitHub Actions aus dem getaggten Stand. Sie sind nicht code-signiert, Windows SmartScreen warnt deshalb beim ersten Start.
+**Release-Build:** Unter [Releases](https://github.com/cmimar01/claude-sessions/releases) liegen ein Windows-Installer (`.exe`, NSIS) und ein Linux-AppImage. Die Builds entstehen per GitHub Actions aus `master`: Erhöht ein Merge die Version in `package.json`, setzt der Workflow den Tag `v<version>` auf diesen Commit und baut das Release. Ein Ruleset im Repository verbietet, `v*`-Tags anzulegen, zu verschieben oder zu löschen. Nur der Workflow darf es, über einen Deploy-Key. Sie sind nicht code-signiert, Windows SmartScreen warnt deshalb beim ersten Start.
 
 **Updates:** Die installierte App prüft beim Start und danach alle 4 Stunden, ob unter Releases eine neuere Version liegt. Ein Update lädt sie im Hintergrund, meldet es per Systembenachrichtigung und installiert es beim nächsten Beenden. Aus dem Quellcode gestartet, prüft die App nicht.
 
