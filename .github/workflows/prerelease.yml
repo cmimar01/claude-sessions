@@ -1,0 +1,31 @@
+name: Vorabversion
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npm version "$(node -p "require('./package.json').version")-pre.$GITHUB_RUN_NUMBER" --no-git-tag-version
+        shell: bash
+      - run: npm run dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: claude-sessions-${{ matrix.os }}
+          path: |
+            dist/*.exe
+            dist/*.AppImage
+          retention-days: 14
