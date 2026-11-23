@@ -259,6 +259,12 @@ function remove(id) {
   saveStore();
 }
 
+function parseTags(text) {
+  const tags = text.split(/[\s,]+/).map((token) => token.replace(/^#+/, '')).filter(Boolean);
+  const byLowerCase = new Map(tags.map((tag) => [tag.toLowerCase(), tag]));
+  return [...byLowerCase.values()];
+}
+
 function setArchived(id, archived) {
   if (archived) kill(id);
   findSession(id).archived = archived;
@@ -342,6 +348,7 @@ function showContextMenu(id) {
   const isActive = !session.archived;
   Menu.buildFromTemplate([
     { label: 'Umbenennen', click: () => send('rename-requested', id) },
+    { label: 'Tags bearbeiten…', click: () => send('edit-tags-requested', id) },
     { label: 'Resume-Befehl kopieren', click: () => clipboard.writeText(resumeCommand(session)) },
     { label: 'Ordner öffnen', click: () => shell.openPath(session.cwd) },
     { type: 'separator' },
@@ -380,6 +387,10 @@ ipcMain.handle('rename', (_e, id, name) => {
   const session = findSession(id);
   session.name = name;
   session.autoNamed = false;
+  saveStore();
+});
+ipcMain.handle('set-tags', (_e, id, text) => {
+  findSession(id).tags = parseTags(text);
   saveStore();
 });
 ipcMain.handle('read-clipboard', async () => ({

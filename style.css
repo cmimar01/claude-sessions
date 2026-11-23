@@ -139,11 +139,34 @@ li small {
   color: #888;
 }
 
+#sessions li .tags {
+  padding-left: 1.2em;
+}
+
+li .tags[hidden] {
+  display: none;
+}
+
+.tag {
+  color: #9cdcfe;
+  margin-right: 6px;
+}
+
+.tag:hover {
+  text-decoration: underline;
+}
+
+li.editing .tags:empty::before {
+  content: "#tag #weiterer-tag";
+  color: #666;
+}
+
 li.editing {
   white-space: normal;
   text-overflow: clip;
 }
 
+li.editing .tags,
 li.editing .name {
   outline: 1px solid #007acc;
   background: #3c3c3c;
