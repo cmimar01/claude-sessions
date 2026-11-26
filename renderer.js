@@ -2,6 +2,7 @@ const terminals = new Map();
 const running = new Set();
 let busyIds = new Set();
 const attentionIds = new Set();
+let permissions = new Map();
 let store;
 let selectedId = null;
 let editingId = null;
@@ -33,19 +34,62 @@ function renderList() {
   $('archive').hidden = archived.length === 0;
   if (query) $('archive').open = true;
   $('archive').querySelector('summary').textContent = `Archiv (${archived.length})`;
+  renderPermissions();
   showAttentionCount();
 }
 
-let shownAttentionCount = 0;
+function renderPermissions() {
+  const entries = [...permissions.values()]
+    .filter((entry) => store.sessions.some((s) => s.id === entry.id))
+    .sort((a, b) => a.since - b.since);
+  $('permissions').hidden = entries.length === 0;
+  $('permissions-title').textContent = `Freigaben (${entries.length})`;
+  $('permission-list').replaceChildren(...entries.map(permissionItem));
+}
+
+function permissionItem({ id, tool, summary, since }) {
+  const session = store.sessions.find((s) => s.id === id);
+  const li = document.createElement('li');
+  li.classList.toggle('selected', id === selectedId);
+  li.title = [session.name, tool, summary].filter(Boolean).join('\n');
+  const head = document.createElement('span');
+  head.className = 'name';
+  head.textContent = `${session.name} · ${tool}`;
+  const detail = document.createElement('small');
+  detail.textContent = [summary, waitingTime(since)].filter(Boolean).join(' · ');
+  li.append(head, detail);
+  li.addEventListener('click', () => select(id));
+  return li;
+}
+
+function waitingTime(since) {
+  const minutes = Math.floor((Date.now() - since) / 60000);
+  if (minutes < 1) return 'gerade eben';
+  if (minutes < 60) return `${minutes} min`;
+  return `${Math.floor(minutes / 60)} h`;
+}
+
+function onPermissionsChanged(entries) {
+  permissions = new Map(entries.map((entry) => [entry.id, entry]));
+  if (store) renderList();
+}
+
+let shownCounts = '';
 
 function showAttentionCount() {
-  const count = attentionIds.size;
-  if (count === shownAttentionCount) return;
-  shownAttentionCount = count;
-  window.api.setAttentionCount(count, count ? badgeImage(count) : null);
+  const counts = {
+    permissions: permissions.size,
+    attention: [...attentionIds].filter((id) => !permissions.has(id)).length,
+  };
+  const key = JSON.stringify(counts);
+  if (key === shownCounts) return;
+  shownCounts = key;
+  const total = counts.permissions + counts.attention;
+  window.api.setAttentionCount(counts, total ? badgeImage(total) : null);
 }
 
 const STATE_LABELS = {
+  permission: 'Braucht Freigabe',
   busy: 'Claude arbeitet',
   attention: 'Wartet auf dich',
   running: 'Läuft',
@@ -54,6 +98,7 @@ const STATE_LABELS = {
 
 function sessionState(id) {
   if (!running.has(id)) return null;
+  if (permissions.has(id)) return 'permission';
   if (busyIds.has(id)) return 'busy';
   if (attentionIds.has(id)) return 'attention';
   return 'running';
@@ -397,6 +442,10 @@ window.api.onRestartRequested((id) => {
   select(id);
 });
 window.api.onBusyChanged(onBusyChanged);
+window.api.onPermissionsChanged(onPermissionsChanged);
+setInterval(() => {
+  if (permissions.size && store) renderPermissions();
+}, 30000);
 window.addEventListener('focus', () => {
   if (selectedId) clearAttention(selectedId);
 });
@@ -444,4 +493,7 @@ new ResizeObserver(() => {
   if (selectedId) terminals.get(selectedId)?.fit.fit();
 }).observe($('terminals'));
 
-window.api.list().then(onStoreChanged);
+window.api.list().then(async (initialStore) => {
+  permissions = new Map((await window.api.permissions()).map((entry) => [entry.id, entry]));
+  onStoreChanged(initialStore);
+});

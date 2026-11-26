@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, dialog, Menu, clipboard, shell, nativeImage } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, Menu, Notification, clipboard, shell, nativeImage } = require('electron');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -21,6 +21,7 @@ const hookToken = crypto.randomUUID();
 const autoNameLength = 40;
 const ptys = new Map();
 const busyIds = new Set();
+const pendingPermissions = new Map();
 let hookUrlBase;
 let store;
 let win;
@@ -70,6 +71,8 @@ function hookSettings(entryId) {
       SessionStart: forward(),
       UserPromptSubmit: forward(),
       PostToolUse: forward(),
+      PostToolUseFailure: forward(),
+      PermissionRequest: forward(),
       Stop: forward(),
       Notification: forward('permission_prompt|elicitation_dialog'),
     },
@@ -92,6 +95,41 @@ function setBusy(id, busy) {
   if (busy) busyIds.add(id);
   else busyIds.delete(id);
   send('busy-changed', [...busyIds]);
+}
+
+function sendPermissions() {
+  send('permissions-changed', [...pendingPermissions.values()]);
+}
+
+function setPendingPermission(id, tool, summary) {
+  const isNew = !pendingPermissions.has(id);
+  pendingPermissions.set(id, { id, tool, summary, since: Date.now() });
+  sendPermissions();
+  if (isNew) notifyPermission(id, tool, summary);
+}
+
+function clearPendingPermission(id) {
+  if (pendingPermissions.delete(id)) sendPermissions();
+}
+
+function permissionSummary(input = {}) {
+  const detail = input.command ?? input.file_path ?? input.notebook_path ?? input.url ?? input.pattern ?? input.path;
+  return detail === undefined ? '' : String(detail).replace(/\s+/g, ' ').trim();
+}
+
+function notifyPermission(id, tool, summary) {
+  if (win.isFocused() || !Notification.isSupported()) return;
+  win.flashFrame(true);
+  const notification = new Notification({
+    title: `Freigabe: ${findSession(id)?.name ?? 'Session'}`,
+    body: summary ? `${tool}: ${summary}` : tool,
+  });
+  notification.on('click', () => {
+    if (win.isMinimized()) win.restore();
+    win.focus();
+    send('select-requested', id);
+  });
+  notification.show();
 }
 
 function applyNameFromPrompt(session, prompt) {
@@ -117,6 +155,7 @@ function handleHookEvent(entryId, body) {
   switch (event.hook_event_name) {
     case 'SessionStart':
       setBusy(entryId, false);
+      clearPendingPermission(entryId);
       if (!event.session_id || event.session_id === session.claudeSessionId) return;
       session.claudeSessionId = event.session_id;
       saveStore();
@@ -125,13 +164,24 @@ function handleHookEvent(entryId, body) {
       session.lastPromptAt = new Date().toISOString();
       applyNameFromPrompt(session, event.prompt);
       saveStore();
+      clearPendingPermission(entryId);
       setBusy(entryId, true);
       return;
     case 'PostToolUse':
+    case 'PostToolUseFailure':
+      clearPendingPermission(entryId);
       setBusy(entryId, true);
       return;
-    case 'Stop':
+    case 'PermissionRequest':
+      setBusy(entryId, false);
+      setPendingPermission(entryId, event.tool_name ?? 'Werkzeug', permissionSummary(event.tool_input));
+      return;
     case 'Notification':
+      setBusy(entryId, false);
+      if (event.notification_type === 'elicitation_dialog') setPendingPermission(entryId, 'Rückfrage', event.message ?? '');
+      return;
+    case 'Stop':
+      clearPendingPermission(entryId);
       setBusy(entryId, false);
       return;
   }
@@ -183,6 +233,7 @@ function attach(id, cols, rows) {
   if (!isDirectory(session.cwd)) return reportMissingDirectory(id, session.cwd);
   spawnTracked(id, claudeExecutable, claudeArgs(session), { cwd: session.cwd, cols, rows }, () => {
     setBusy(id, false);
+    clearPendingPermission(id);
     send('pty-exit', id);
   });
 }
@@ -239,6 +290,7 @@ function kill(id) {
   ptys.get(id)?.kill();
   ptys.delete(id);
   setBusy(id, false);
+  clearPendingPermission(id);
 }
 
 async function confirmRemove(session) {
@@ -404,8 +456,12 @@ ipcMain.handle('pick-folder', async (_e, startPath) => {
 ipcMain.on('context-menu', (_e, id) => showContextMenu(id));
 ipcMain.on('launch-from-selection', (_e, sourceId, text) => launchFromSelection(sourceId, text));
 ipcMain.on('attach', (_e, id, cols, rows) => attach(id, cols, rows));
-ipcMain.on('mark-waiting', (_e, id) => setBusy(id, false));
-ipcMain.on('attention-count', (_e, count, dataUrl) => showAttentionCount(count, dataUrl));
+ipcMain.handle('permissions', () => [...pendingPermissions.values()]);
+ipcMain.on('mark-waiting', (_e, id) => {
+  setBusy(id, false);
+  clearPendingPermission(id);
+});
+ipcMain.on('attention-count', (_e, counts, dataUrl) => showAttentionCount(counts, dataUrl));
 ipcMain.on('write', (_e, id, data) => ptys.get(id)?.write(data));
 ipcMain.on('paste-image', (_e, id) => ptys.get(id)?.write(imagePasteKey));
 ipcMain.handle('prompt-history', (_e, id) => promptHistory(id));
@@ -419,21 +475,29 @@ ipcMain.on('resize', (_e, id, cols, rows) => ptys.get(id)?.resize(cols, rows));
 const baseTitle = () => `Claude Sessions ${app.getVersion()}`;
 let attentionCount = 0;
 
-function showAttentionCount(count, dataUrl) {
-  if (count > attentionCount && !win.isFocused()) win.flashFrame(true);
-  attentionCount = count;
-  win.setTitle(count ? `(${count}) ${baseTitle()}` : baseTitle());
-  showBadge(count, dataUrl);
+function countText({ permissions, attention }) {
+  const parts = [];
+  if (permissions) parts.push(`${permissions} ${permissions === 1 ? 'Freigabe' : 'Freigaben'}`);
+  if (attention) parts.push(`${attention} neu`);
+  return parts.join(' · ');
+}
+
+function showAttentionCount(counts, dataUrl) {
+  if (counts.attention > attentionCount && !win.isFocused()) win.flashFrame(true);
+  attentionCount = counts.attention;
+  const text = countText(counts);
+  win.setTitle(text ? `(${text}) ${baseTitle()}` : baseTitle());
+  showBadge(counts.permissions + counts.attention, text, dataUrl);
 }
 
 // Windows has no numeric taskbar badge API; the overlay icon is the only place a count can appear on the button.
-function showBadge(count, dataUrl) {
+function showBadge(count, text, dataUrl) {
   if (process.platform !== 'win32') {
     app.setBadgeCount(count);
     return;
   }
   const overlay = count ? nativeImage.createFromDataURL(dataUrl) : null;
-  win.setOverlayIcon(overlay, count ? `${count} ungelesene Ergebnisse` : '');
+  win.setOverlayIcon(overlay, text);
 }
 
 const UPDATE_INTERVAL_MS = 4 * 60 * 60 * 1000;
@@ -443,6 +507,9 @@ function checkForUpdates() {
 }
 
 if (!app.requestSingleInstanceLock()) app.exit(0);
+
+// Without an AppUserModelID, Windows drops toast notifications of an app started via "npm start".
+if (process.platform === 'win32') app.setAppUserModelId('com.github.cmimar01.claude-sessions');
 
 app.on('second-instance', () => {
   if (win.isMinimized()) win.restore();

@@ -56,12 +56,17 @@ Die Liste ist nach der letzten eigenen Nachricht sortiert, ein Statuswechsel ver
 
 | Symbol | Status | Bedeutung |
 |---|---|---|
+| rotes ■, Name fett | Braucht Freigabe | Claude wartet auf eine Berechtigung oder ein MCP-Server auf eine Antwort |
 | gelber Punkt, pulsierend | Claude arbeitet | Prompt abgeschickt oder Tool läuft |
-| oranges ◆, Name fett | Wartet auf dich | Claude ist fertig oder braucht eine Freigabe, und die Session war in dem Moment nicht im Blick |
+| oranges ◆, Name fett | Wartet auf dich | Claude ist fertig, und die Session war in dem Moment nicht im Blick |
 | grüner Punkt, gedämpft | Läuft | Prozess läuft, wartet auf Eingabe, bereits gesehen |
 | kein Symbol | Nicht gestartet | Kein Prozess |
 
-«Wartet auf dich» erlischt, sobald die Session geöffnet wird. Der Fenstertitel zeigt die Zahl der wartenden Sessions, und liegt das Fenster im Hintergrund, blinkt der Taskleisten-Knopf, wenn eine Session hinzukommt. Ein roter Zähler am App-Icon in der Taskleiste zeigt dieselbe Zahl, also die ungelesenen Ergebnisse. Unter Linux erscheint er nur, wenn die Desktop-Umgebung Zähler am Icon unterstützt.
+«Wartet auf dich» erlischt, sobald die Session geöffnet wird. «Braucht Freigabe» bleibt dagegen stehen, bis die Freigabe beantwortet ist: Claude führt das Werkzeug aus, du schickst einen Prompt, brichst mit Esc ab, oder Claude beendet die Antwort.
+
+Offene Freigaben aller Sessions sammelt der rot umrandete Block «Freigaben» über der Liste, die älteste zuoberst. Jede Zeile nennt Session, Werkzeug, den Befehl oder Pfad und die Wartezeit; ein Klick öffnet das Terminal der Session, dort beantwortest du die Freigabe. Liegt das Fenster im Hintergrund, meldet Windows jede neue Freigabe zusätzlich als Benachrichtigung, ein Klick darauf öffnet die Session. Fragt Claude in einer Session mehrmals hintereinander, zeigt der Block die jüngste Frage.
+
+Der Fenstertitel zeigt die Zahl der offenen Freigaben und der wartenden Sessions, etwa «(1 Freigabe · 2 neu)», und liegt das Fenster im Hintergrund, blinkt der Taskleisten-Knopf, wenn eine Session hinzukommt. Ein roter Zähler am App-Icon in der Taskleiste zeigt die Summe beider Zahlen. Unter Linux erscheint er nur, wenn die Desktop-Umgebung Zähler am Icon unterstützt.
 
 Das Kontextmenü (Rechtsklick auf einen Eintrag) bietet: Umbenennen, Tags bearbeiten, Resume-Befehl kopieren, Ordner öffnen, Neu starten, Session beenden, Arbeitsverzeichnis ändern, Als neue Session forken, Archivieren/Wiederherstellen und Endgültig entfernen. «Entfernen» löscht nur den Listeneintrag; das Transcript von Claude Code bleibt erhalten und ist mit `claude --resume <id>` weiter erreichbar.
 
