@@ -2,6 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('api', {
   list: () => ipcRenderer.invoke('list'),
+  permissions: () => ipcRenderer.invoke('permissions'),
   setDefaultCwd: (cwd) => ipcRenderer.invoke('set-default-cwd', cwd),
   setBypassPermissions: (enabled) => ipcRenderer.invoke('set-bypass-permissions', enabled),
   create: (session) => ipcRenderer.invoke('create', session),
@@ -16,13 +17,14 @@ contextBridge.exposeInMainWorld('api', {
   launchFromSelection: (sourceId, text) => ipcRenderer.send('launch-from-selection', sourceId, text),
   attach: (id, cols, rows) => ipcRenderer.send('attach', id, cols, rows),
   markWaiting: (id) => ipcRenderer.send('mark-waiting', id),
-  setAttentionCount: (count, dataUrl) => ipcRenderer.send('attention-count', count, dataUrl),
+  setAttentionCount: (counts, dataUrl) => ipcRenderer.send('attention-count', counts, dataUrl),
   write: (id, data) => ipcRenderer.send('write', id, data),
   pasteImage: (id) => ipcRenderer.send('paste-image', id),
   resize: (id, cols, rows) => ipcRenderer.send('resize', id, cols, rows),
   onData: (callback) => ipcRenderer.on('pty-data', (_e, id, data) => callback(id, data)),
   onExit: (callback) => ipcRenderer.on('pty-exit', (_e, id) => callback(id)),
   onBusyChanged: (callback) => ipcRenderer.on('busy-changed', (_e, ids) => callback(ids)),
+  onPermissionsChanged: (callback) => ipcRenderer.on('permissions-changed', (_e, entries) => callback(entries)),
   onListChanged: (callback) => ipcRenderer.on('list-changed', (_e, store) => callback(store)),
   onRestartRequested: (callback) => ipcRenderer.on('restart-requested', (_e, id) => callback(id)),
   onSelectRequested: (callback) => ipcRenderer.on('select-requested', (_e, id) => callback(id)),

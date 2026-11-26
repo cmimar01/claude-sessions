@@ -124,6 +124,37 @@ li.selected {
   color: #fff;
 }
 
+#sessions li.permission::before {
+  content: "■";
+  color: #f14c4c;
+}
+
+#sessions li.permission .name {
+  font-weight: bold;
+  color: #fff;
+}
+
+#permissions {
+  border: 1px solid #f14c4c;
+  border-radius: 3px;
+  padding: 4px;
+}
+
+#permissions[hidden] {
+  display: none;
+}
+
+#permissions h2 {
+  margin: 0 0 4px 4px;
+  font-size: inherit;
+  color: #f14c4c;
+}
+
+#permission-list .name {
+  font-weight: bold;
+  color: #fff;
+}
+
 @keyframes pulse {
   50% {
     opacity: 0.25;
